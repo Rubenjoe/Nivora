@@ -1,0 +1,382 @@
+/* Pitch-black canvas, lifted black surfaces, and restrained champagne accents. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f4f0e8;
+  --muted: #b3ada3;
+  --line: #282521;
+  --paper: #000000;
+  --accent: #d2b16f;
+  --deep: #f0eadf;
+  --surface: #0a0a0a;
+  --positive: #83c4a6;
+  --negative: #f08c80;
+  --warning: #e0bd7a;
+  --focus-ring: #e0c584;
+}
+
+.theme-toggle {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    transform 180ms ease;
+}
+.theme-toggle:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  transform: translateY(-1px);
+}
+.theme-toggle:active {
+  transform: translateY(0) scale(0.97);
+}
+.topbar-signin,
+.auth-back,
+.transactions-back,
+.topbar-signup,
+.add-button,
+.auth-submit {
+  transition:
+    color 160ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+.topbar-signin:hover,
+.auth-back:hover,
+.transactions-back:hover {
+  color: var(--accent);
+}
+.topbar-signup:hover,
+.add-button:hover,
+.auth-submit:hover:not(:disabled) {
+  background-color: #1f6d67;
+  transform: translateY(-1px);
+}
+.period-button:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.auth-brand .theme-toggle {
+  margin-left: auto;
+}
+
+:root[data-theme="dark"] body {
+  background: var(--paper);
+  color: var(--ink);
+}
+:root[data-theme="dark"] .welcome-row h1,
+:root[data-theme="dark"] .transactions-content h1 {
+  color: #e6ede8;
+}
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .transaction-form-card,
+:root[data-theme="dark"] .transaction-history-card,
+:root[data-theme="dark"] .transactions-header,
+:root[data-theme="dark"] .summary-card {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .topbar {
+  background: rgb(20 29 25 / 92%);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .crumb,
+:root[data-theme="dark"] .topbar-signin,
+:root[data-theme="dark"] .transactions-back,
+:root[data-theme="dark"] .section-heading p,
+:root[data-theme="dark"] .summary-note,
+:root[data-theme="dark"] .footer-note,
+:root[data-theme="dark"] .transaction-card-heading p,
+:root[data-theme="dark"] .history-heading p,
+:root[data-theme="dark"] .transaction-date,
+:root[data-theme="dark"] .transaction-form label span {
+  color: #9aa9a3;
+}
+:root[data-theme="dark"] .crumb strong,
+:root[data-theme="dark"] .summary-label,
+:root[data-theme="dark"] .section-heading h2,
+:root[data-theme="dark"] .step-copy h2,
+:root[data-theme="dark"] .transaction-card-heading h2,
+:root[data-theme="dark"] .history-heading h2,
+:root[data-theme="dark"] .transaction-description strong,
+:root[data-theme="dark"] .history-empty h3 {
+  color: #d9e4de;
+}
+:root[data-theme="dark"] .nav-item {
+  color: #a8b5af;
+}
+:root[data-theme="dark"] .nav-item:hover,
+:root[data-theme="dark"] .nav-item.active {
+  color: #b9e2cd;
+  background: #22342c;
+}
+:root[data-theme="dark"] .nav-disabled,
+:root[data-theme="dark"] .nav-disabled:hover {
+  color: #718079;
+}
+:root[data-theme="dark"] .mode-card,
+:root[data-theme="dark"] .profile-row {
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .mode-card strong,
+:root[data-theme="dark"] .profile-copy strong {
+  color: #d5e0da;
+}
+:root[data-theme="dark"] .mode-card span:not(.mode-dot),
+:root[data-theme="dark"] .profile-copy span {
+  color: #92a29b;
+}
+:root[data-theme="dark"] .mode-icon,
+:root[data-theme="dark"] .brand-mark,
+:root[data-theme="dark"] .avatar,
+:root[data-theme="dark"] .summary-icon.income,
+:root[data-theme="dark"] .entry-mark,
+:root[data-theme="dark"] .empty-symbol,
+:root[data-theme="dark"] .empty-ledger {
+  color: #a6dbc3;
+  background: #263b31;
+}
+:root[data-theme="dark"] .summary-icon.expense,
+:root[data-theme="dark"] .transaction-type-mark.expense {
+  color: #e9b79e;
+  background: #3a2d26;
+}
+:root[data-theme="dark"] .summary-icon.cash {
+  color: #c3c9a0;
+  background: #30382d;
+}
+:root[data-theme="dark"] .summary-value {
+  color: #edf3ef;
+}
+:root[data-theme="dark"] .empty-chart {
+  background: #151f1b;
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .empty-copy h3 {
+  color: #d9e4de;
+}
+:root[data-theme="dark"] .empty-copy p,
+:root[data-theme="dark"] .step-copy > p:last-child {
+  color: #9aa9a3;
+}
+:root[data-theme="dark"] .next-step {
+  background: #1a2a23;
+  border-color: #2b4236;
+}
+:root[data-theme="dark"] .step-ornament {
+  color: #acd9c3;
+  background: #263b31;
+}
+:root[data-theme="dark"] .period-button,
+:root[data-theme="dark"] .transaction-form input,
+:root[data-theme="dark"] .transaction-form select,
+:root[data-theme="dark"] .transaction-form textarea,
+:root[data-theme="dark"] .transaction-filters input,
+:root[data-theme="dark"] .amount-field {
+  color: #e3ece6;
+  background-color: #121b17;
+  border-color: #35443e;
+}
+:root[data-theme="dark"] .transaction-form .amount-field input {
+  background: transparent;
+}
+:root[data-theme="dark"] .transaction-form select option,
+:root[data-theme="dark"] .period-button option {
+  color: #e3ece6;
+  background: #18221e;
+}
+:root[data-theme="dark"] .transaction-form label,
+:root[data-theme="dark"] .transaction-filters label {
+  color: #becac3;
+}
+:root[data-theme="dark"] .kind-switch {
+  background: #111a16;
+}
+:root[data-theme="dark"] .kind-switch button {
+  color: #9eaaa4;
+}
+:root[data-theme="dark"] .kind-switch button.selected {
+  color: #e6ede8;
+  background: #293831;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 28%);
+}
+:root[data-theme="dark"] .secondary-action,
+:root[data-theme="dark"] .filter-button {
+  color: #d2ddd6;
+  background: #1c2923;
+  border-color: #35443e;
+}
+:root[data-theme="dark"] .filter-button:hover,
+:root[data-theme="dark"] .secondary-action:hover,
+:root[data-theme="dark"] .icon-action:hover {
+  background: #293831;
+}
+:root[data-theme="dark"] .transaction-row,
+:root[data-theme="dark"] .transaction-filters {
+  border-color: #2b3933;
+}
+:root[data-theme="dark"] .transaction-description span,
+:root[data-theme="dark"] .record-count,
+:root[data-theme="dark"] .history-empty {
+  color: #a0ada7;
+}
+:root[data-theme="dark"] .transaction-amount {
+  color: #dce6df;
+}
+:root[data-theme="dark"] .transaction-amount.income,
+:root[data-theme="dark"] .transaction-type-mark.income {
+  color: #9cdbbf;
+}
+:root[data-theme="dark"] .transaction-type-mark.income {
+  background: #263b31;
+}
+:root[data-theme="dark"] .transaction-amount.expense {
+  color: #e7b49e;
+}
+:root[data-theme="dark"] .icon-action {
+  color: #a0ada7;
+}
+:root[data-theme="dark"] .delete-action:hover {
+  color: #ffb1a4;
+  background: #3a2926;
+}
+:root[data-theme="dark"] .transaction-message.error,
+:root[data-theme="dark"] .auth-error {
+  color: #ffc1b5;
+  background: #382623;
+}
+:root[data-theme="dark"] .transaction-message.success {
+  color: #b7e3cb;
+  background: #20372c;
+}
+:root[data-theme="dark"] .auth-page {
+  background: var(--paper);
+}
+:root[data-theme="dark"] .auth-panel h1,
+:root[data-theme="dark"] .auth-brand {
+  color: #e5eee8;
+}
+:root[data-theme="dark"] .auth-back,
+:root[data-theme="dark"] .auth-intro,
+:root[data-theme="dark"] .auth-switch,
+:root[data-theme="dark"] .auth-privacy {
+  color: #a0ada7;
+}
+:root[data-theme="dark"] .auth-form label {
+  color: #c3cec7;
+}
+:root[data-theme="dark"] .auth-form input {
+  color: #e4ede7;
+  background: #141d18;
+  border-color: #35443e;
+}
+:root[data-theme="dark"] .auth-switch a {
+  color: #a1d9bf;
+}
+:root[data-theme="dark"] .auth-aside {
+  background: #142720;
+}
+:root[data-theme="dark"] .aside-foot {
+  color: #b4c8bc;
+}
+:root[data-theme="dark"] .category-track {
+  background: #293831;
+}
+:root[data-theme="dark"] .category-bar-fill {
+  background: linear-gradient(90deg, #52977e, #9bc8aa);
+}
+:root[data-theme="dark"] .category-line,
+:root[data-theme="dark"] .category-line strong,
+:root[data-theme="dark"] .recent-heading h2,
+:root[data-theme="dark"] .recent-copy strong {
+  color: #e2ebe5;
+}
+:root[data-theme="dark"] .recent-heading p,
+:root[data-theme="dark"] .recent-copy small,
+:root[data-theme="dark"] .recent-empty {
+  color: #a0ada7;
+}
+:root[data-theme="dark"] .recent-row {
+  border-color: #2b3933;
+}
+
+/* Quiet, purposeful entrances; no perpetual motion or layout-shifting effects. */
+@keyframes nivora-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.main-area .content > *,
+.transactions-content > * {
+  animation: nivora-arrive 420ms cubic-bezier(0.2, 0.7, 0.25, 1) both;
+}
+.main-area .content > :nth-child(2),
+.transactions-content > :nth-child(2) {
+  animation-delay: 45ms;
+}
+.main-area .content > :nth-child(3),
+.transactions-content > :nth-child(3) {
+  animation-delay: 85ms;
+}
+.main-area .content > :nth-child(4),
+.transactions-content > :nth-child(4) {
+  animation-delay: 125ms;
+}
+.summary-card,
+.transaction-form-card,
+.transaction-history-card,
+.empty-chart,
+.next-step,
+.dashboard-recent {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .summary-card:hover,
+  .transaction-form-card:hover,
+  .transaction-history-card:hover,
+  .dashboard-recent:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgb(25 52 44 / 7%);
+  }
+}
+:root[data-theme="dark"] .summary-card:hover,
+:root[data-theme="dark"] .transaction-form-card:hover,
+:root[data-theme="dark"] .transaction-history-card:hover,
+:root[data-theme="dark"] .dashboard-recent:hover {
+  box-shadow: 0 12px 30px rgb(0 0 0 / 20%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .main-area .content > *,
+  .transactions-content > *,
+  .category-bar-fill,
+  .summary-card,
+  .transaction-form-card,
+  .transaction-history-card,
+  .empty-chart,
+  .next-step,
+  .dashboard-recent,
+  .theme-toggle {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
+}

@@ -1,0 +1,204 @@
+/* Nivora's restrained onyx-and-champagne palette. */
+:root:not([data-theme="dark"]) .sidebar,
+:root:not([data-theme="dark"]) .topbar,
+:root:not([data-theme="dark"]) .summary-card,
+:root:not([data-theme="dark"]) .empty-chart,
+:root:not([data-theme="dark"]) .dashboard-recent,
+:root:not([data-theme="dark"]) .transaction-form-card,
+:root:not([data-theme="dark"]) .transaction-history-card,
+:root:not([data-theme="dark"]) .transactions-header,
+:root:not([data-theme="dark"]) .auth-page,
+:root:not([data-theme="dark"]) .auth-panel {
+  background-color: var(--surface);
+  border-color: var(--line);
+}
+
+:root:not([data-theme="dark"]) .nav-item:hover {
+  background-color: #f4f0e8;
+}
+:root:not([data-theme="dark"]) .nav-item.active {
+  color: #72562f;
+  background-color: #f1ebdf;
+}
+:root:not([data-theme="dark"]) .brand-mark,
+:root:not([data-theme="dark"]) .mode-icon,
+:root:not([data-theme="dark"]) .avatar,
+:root:not([data-theme="dark"]) .entry-mark,
+:root:not([data-theme="dark"]) .empty-symbol,
+:root:not([data-theme="dark"]) .empty-ledger,
+:root:not([data-theme="dark"]) .auth-mark,
+:root:not([data-theme="dark"]) .step-ornament {
+  color: #806239;
+  background-color: #f1ebdf;
+}
+:root:not([data-theme="dark"]) .summary-icon.cash {
+  color: #806239;
+  background-color: #f1ebdf;
+}
+:root:not([data-theme="dark"]) .category-track {
+  background-color: #eee8dc;
+}
+:root:not([data-theme="dark"]) .category-bar-fill {
+  background: linear-gradient(90deg, #806239, #c9ac72);
+}
+:root:not([data-theme="dark"]) .topbar-signup,
+:root:not([data-theme="dark"]) .add-button,
+:root:not([data-theme="dark"]) .auth-submit,
+:root:not([data-theme="dark"]) button[type="submit"],
+:root:not([data-theme="dark"]) .primary-action {
+  color: #fffdf9;
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+:root:not([data-theme="dark"]) .topbar-signup:hover,
+:root:not([data-theme="dark"]) .add-button:hover,
+:root:not([data-theme="dark"]) .auth-submit:hover:not(:disabled),
+:root:not([data-theme="dark"]) button[type="submit"]:hover:not(:disabled),
+:root:not([data-theme="dark"]) .primary-action:hover {
+  background-color: #654b2a;
+  border-color: #654b2a;
+}
+:root:not([data-theme="dark"]) .auth-aside {
+  background-color: #211e19;
+}
+:root:not([data-theme="dark"]) .transaction-form input,
+:root:not([data-theme="dark"]) .transaction-form select,
+:root:not([data-theme="dark"]) .transaction-form textarea,
+:root:not([data-theme="dark"]) .transaction-filters input,
+:root:not([data-theme="dark"]) .amount-field,
+:root:not([data-theme="dark"]) .auth-form input {
+  color: var(--ink);
+  background-color: var(--surface);
+  border-color: var(--line);
+}
+:root:not([data-theme="dark"]) .transaction-form input:focus-visible,
+:root:not([data-theme="dark"]) .transaction-form select:focus-visible,
+:root:not([data-theme="dark"]) .transaction-form textarea:focus-visible,
+:root:not([data-theme="dark"]) .auth-form input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus-ring) 25%, transparent);
+  outline-offset: 1px;
+  border-color: var(--focus-ring);
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .app-shell,
+:root[data-theme="dark"] .main-area,
+:root[data-theme="dark"] .transactions-page,
+:root[data-theme="dark"] .auth-page {
+  color: var(--ink);
+  background-color: #000;
+}
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .summary-card,
+:root[data-theme="dark"] .empty-chart,
+:root[data-theme="dark"] .dashboard-recent,
+:root[data-theme="dark"] .transaction-form-card,
+:root[data-theme="dark"] .transaction-history-card,
+:root[data-theme="dark"] .transactions-header,
+:root[data-theme="dark"] .auth-panel {
+  background-color: #0a0a0a;
+  border-color: #282521;
+}
+:root[data-theme="dark"] .topbar {
+  background-color: rgb(0 0 0 / 94%);
+  border-color: #282521;
+}
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .nav-item:hover {
+  color: #efd7a5;
+  background-color: #1c1912;
+}
+:root[data-theme="dark"] .theme-toggle:hover,
+:root[data-theme="dark"] .topbar-signin:hover,
+:root[data-theme="dark"] .transactions-back:hover,
+:root[data-theme="dark"] .auth-back:hover,
+:root[data-theme="dark"] .auth-switch a {
+  color: #e3c47f;
+}
+:root[data-theme="dark"] .brand-mark,
+:root[data-theme="dark"] .mode-icon,
+:root[data-theme="dark"] .avatar,
+:root[data-theme="dark"] .entry-mark,
+:root[data-theme="dark"] .empty-symbol,
+:root[data-theme="dark"] .empty-ledger,
+:root[data-theme="dark"] .auth-mark,
+:root[data-theme="dark"] .step-ornament,
+:root[data-theme="dark"] .summary-icon.cash {
+  color: #e8d09a;
+  background-color: #221c12;
+}
+:root[data-theme="dark"] .summary-icon.income,
+:root[data-theme="dark"] .transaction-type-mark.income {
+  color: #83c4a6;
+  background-color: #1b2a21;
+}
+:root[data-theme="dark"] .empty-chart {
+  background-color: #050505;
+}
+:root[data-theme="dark"] .next-step {
+  background-color: #090806;
+  border-color: #352a17;
+}
+:root[data-theme="dark"] .transaction-form input,
+:root[data-theme="dark"] .transaction-form select,
+:root[data-theme="dark"] .transaction-form textarea,
+:root[data-theme="dark"] .transaction-filters input,
+:root[data-theme="dark"] .amount-field,
+:root[data-theme="dark"] .auth-form input {
+  color: #f0ece5;
+  background-color: #050505;
+  border-color: #302a20;
+}
+:root[data-theme="dark"] .transaction-form select option,
+:root[data-theme="dark"] .period-button option {
+  color: #f0ece5;
+  background-color: #0a0a0a;
+}
+:root[data-theme="dark"] .kind-switch {
+  background-color: #050505;
+}
+:root[data-theme="dark"] .kind-switch button.selected,
+:root[data-theme="dark"] .filter-button:hover,
+:root[data-theme="dark"] .secondary-action:hover,
+:root[data-theme="dark"] .icon-action:hover {
+  color: #f4f0e8;
+  background-color: #17140e;
+}
+:root[data-theme="dark"] .secondary-action,
+:root[data-theme="dark"] .filter-button {
+  color: #e8e1d5;
+  background-color: #0d0c09;
+  border-color: #302a20;
+}
+:root[data-theme="dark"] .transaction-row,
+:root[data-theme="dark"] .transaction-filters,
+:root[data-theme="dark"] .recent-row {
+  border-color: #282521;
+}
+:root[data-theme="dark"] .auth-aside {
+  background-color: #000;
+}
+:root[data-theme="dark"] .category-track {
+  background-color: #211d16;
+}
+:root[data-theme="dark"] .category-bar-fill {
+  background: linear-gradient(90deg, #967b48, #ddc58c);
+}
+:root[data-theme="dark"] .topbar-signup,
+:root[data-theme="dark"] .add-button,
+:root[data-theme="dark"] .auth-submit,
+:root[data-theme="dark"] button[type="submit"],
+:root[data-theme="dark"] .primary-action {
+  color: #15120b;
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+:root[data-theme="dark"] .topbar-signup:hover,
+:root[data-theme="dark"] .add-button:hover,
+:root[data-theme="dark"] .auth-submit:hover:not(:disabled),
+:root[data-theme="dark"] button[type="submit"]:hover:not(:disabled),
+:root[data-theme="dark"] .primary-action:hover {
+  color: #15120b;
+  background-color: #b99757;
+  border-color: #b99757;
+}
