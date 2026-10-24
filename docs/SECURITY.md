@@ -1,30 +1,38 @@
 # Security
 
-## Implemented in the current slice
+## Application ownership and database RLS
 
-- Appwrite Node SDK use is isolated in `src/lib/appwrite/server.ts`, marked server-only. Each function creates a fresh SDK client; no shared mutable client instance is used between requests.
-- Sign-up, sign-in, and logout handlers require a same-origin `Origin` matching configured `APP_URL`.
-- Sign-up and sign-in payloads are validated with Zod, and request parsing failures are handled without returning stack traces.
-- The Appwrite session secret is set only in an HTTP-only, same-site cookie with expiry from Appwrite; `Secure` is enabled in production.
-- `/api/v1/auth/me` verifies the session with Appwrite server-side and returns only a small user subset.
-- Finance endpoints verify the Appwrite session with `account.get()`, resolve the internal profile from the verified Appwrite user ID, and scope transaction/category/summary operations to that profile. Mutation endpoints also require the configured same-origin `Origin`.
-- Database URL validation requires a PostgreSQL URL and, in production, `sslmode=require`. The runtime pool is bounded; migration credentials are separate.
-- A composite database FK rejects a transaction that pairs one profile with another profile's category.
-
-## Not yet implemented or verified
-
-No live Appwrite project/credentials or Appwrite PostgreSQL connection are configured, so authentication and persistent finance routes have not been integration-tested against live services. The dashboard is not yet a protected, database-backed experience. Recovery, email verification, OAuth, login rate limiting, deployment-origin testing, and end-to-end authorization tests remain unfinished. Server-side ownership checks and a PGlite foreign-key isolation test exist; PostgreSQL RLS is not enabled, and full API cross-user read/update/delete integration tests remain outstanding.
-
-The registration flow uses a privileged server API key to create a user and session. Provision only the minimum required scopes, keep the key server-side, rotate it if exposed, and test the exact Appwrite policy before use. Do not expose personal financial data or describe this app as production-secure until real-provider and authorization tests pass.
-
-## Required design
-
-- Appwrite is the identity/session authority; verify sessions server-side for every private page/API operation.
-- Map verified identity to an internal profile; constrain every financial read/write to the authenticated profile.
+- Supabase Auth is the identity/session authority. `@supabase/ssr` is used in Route Handlers and a Next.js proxy. Private finance operations call `auth.getUser()` server-side before resolving a profile.
+- Map the verified Supabase Auth user ID to an internal profile, then constrain every financial read/write to that profile. Never trust client-supplied profile/user IDs.
+- Drizzle runtime queries use the privileged server connection from `DATABASE_URL`. RLS does **not** apply to the application's own Drizzle queries; it is not an application authorization boundary. Server-side authentication and explicit ownership-scoped queries are mandatory.
+- `profiles`, `categories`, and `transactions` have Drizzle-defined RLS enabled with policies granted only to the `authenticated` role. The `anon` role has no matching policies. These policies protect access made under Supabase's authenticated database role, not privileged Drizzle queries.
+- The profile policy binds `supabase_user_id` to `(select auth.uid())` for SELECT/INSERT/UPDATE/DELETE. UPDATE has both `USING` and `WITH CHECK`, so that identity value cannot be changed to another user ID. Category and transaction policies similarly require the row's profile to belong to `auth.uid()`; UPDATE validates both existing and resulting ownership.
+- Policies do not use `user_metadata`, and no `SECURITY DEFINER` authorization functions are used.
 - Parameterize database queries with Drizzle, validate inputs, return safe errors, and avoid sensitive logging/caching.
+- Configure TLS for the runtime PostgreSQL connection: set `DATABASE_SSL_CA_PATH` to the Supabase root CA certificate downloaded from the dashboard (Project settings → Database → connection → CA cert). The client always verifies the server certificate (`rejectUnauthorized: true`); certificate verification is never disabled. The certificate file must be kept out of Git (see `.gitignore`).
+- Keep publishable Supabase configuration distinct from database credentials. Never expose a service-role/secret key in a `NEXT_PUBLIC_` variable or browser code.
 - Bound pagination/exports and rate-limit sensitive/expensive endpoints.
-- Prove cross-user reads/updates/deletes fail in automated tests. Never trust client-supplied user IDs.
-- Evaluate PostgreSQL RLS only with safe transaction-local identity context and verified pool behavior; otherwise enforce server-side ownership with isolation tests.
+- Prove cross-user reads/updates/deletes fail in automated tests. Do not weaken ownership tests.
 - Add account export/deletion, backup/restore, CSRF/session, deployment-header, and operational reviews before production readiness.
 
-No production deployment has been made.
+## Auth implementation and verification status
+
+Registration, login, logout, email confirmation callback, `/me`, cookie refresh, and finance identity verification are implemented with `@supabase/ssr`. The legacy `node-appwrite` dependency and Appwrite cookie helper have been removed. `getUser()` verifies the Auth user before resolving a profile, and only the verified Auth UUID is used as the profile identity; user metadata is used only for a display name. Migrations `0000`–`0002` are applied to the Supabase development project (`oxjnxvqarqrilzuetzai`), and their local hashes and journal timestamps match live Drizzle history. No hosted Auth or cross-user API test has been performed. Dashboard email confirmation, site URL, and redirect allowlist settings still need inspection/configuration.
+
+When Supabase access is needed, use the available authorized Supabase connection with read-only checks by default. Do not modify the project through the dashboard SQL editor; schema changes go only through reviewed Drizzle migrations. Production migrations require explicit approval and a provider-supported backup.
+
+## Runtime connection role and RLS decision
+
+Drizzle runtime uses the privileged server connection from `DATABASE_URL`. RLS therefore does not apply to Drizzle queries and must not be represented as protecting the app's own queries. The username in the provisioned DSN determines its precise role; verify the role privileges and `BYPASSRLS` status before deployment.
+
+Decision for the current Drizzle architecture: **do not rely on RLS as the enforcement boundary for Drizzle queries.** The application uses a privileged server-side `pg` connection and Drizzle; it does not automatically carry the caller's Supabase Auth JWT or populate `auth.uid()`. The actual provisioned role has not been independently inspected, but the application connection is designated privileged; RLS policies are defense-in-depth only for authenticated-role sessions outside that connection.
+
+Verified server-side authentication plus explicit profile-scoped Drizzle queries are mandatory. Do not claim RLS protects financial data accessed through the app. Before production, verify the DSN role's privileges and `BYPASSRLS` status, then test the chosen isolation design against Supabase.
+
+Live verification confirms `anon` has no table privileges on profiles/categories/transactions and `authenticated` has SELECT/INSERT/UPDATE/DELETE only. Migration `0001` applies grant hardening. The app's privileged Drizzle connection remains separate from authenticated-role policies and grants.
+
+## Production readiness
+
+No production deployment or database migration has been made. Do not run destructive production changes without explicit authorization. Obtain a provider-supported backup and document a restore test before an approved production migration.
+
+The local PGlite suite now simulates the `authenticated` role to verify that one user cannot select, update, or delete another user's transactions under the migration RLS policies. This is a local policy regression test only; it does not verify hosted RLS behavior or the app's privileged Drizzle query isolation. The app's transaction routes were statically inspected for verified-profile filters, while live API checks remain pending valid database settings, two test users, and Auth Dashboard configuration.

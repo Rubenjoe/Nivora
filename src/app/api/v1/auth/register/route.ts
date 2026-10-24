@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { ID } from "node-appwrite";
 import { z } from "zod";
-import { createAdminAccount, hasTrustedOrigin } from "@/lib/appwrite/server";
+import { createClient } from "@/lib/supabase/server";
+import { hasTrustedOrigin } from "@/lib/security/origin";
 
 const registration = z.object({
   name: z.string().trim().min(1).max(100),
@@ -22,39 +22,34 @@ export async function POST(request: Request) {
       { status: 400 },
     );
 
-  let account: ReturnType<typeof createAdminAccount>["account"];
-  let projectId: string;
   try {
-    ({ account, projectId } = createAdminAccount());
+    const supabase = await createClient();
+    const appUrl = process.env.APP_URL ?? new URL(request.url).origin;
+    const { data, error } = await supabase.auth.signUp({
+      email: input.data.email,
+      password: input.data.password,
+      options: {
+        data: { name: input.data.name },
+        emailRedirectTo: new URL("/auth/confirm", appUrl).toString(),
+      },
+    });
+    if (error) {
+      return NextResponse.json(
+        {
+          error:
+            "Unable to create an account. Check your details or try signing in.",
+        },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json(
+      { ok: true, confirmationRequired: !data.session },
+      { status: 201 },
+    );
   } catch {
     return NextResponse.json(
       { error: "Authentication service is not configured." },
       { status: 503 },
-    );
-  }
-
-  try {
-    await account.create({ userId: ID.unique(), ...input.data });
-    const session = await account.createEmailPasswordSession({
-      email: input.data.email,
-      password: input.data.password,
-    });
-    const response = NextResponse.json({ ok: true }, { status: 201 });
-    response.cookies.set(`a_session_${projectId}`, session.secret, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      expires: new Date(session.expire),
-    });
-    return response;
-  } catch {
-    return NextResponse.json(
-      {
-        error:
-          "Unable to create an account. Check your details or try signing in.",
-      },
-      { status: 400 },
     );
   }
 }

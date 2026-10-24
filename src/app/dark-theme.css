@@ -255,6 +255,10 @@
   color: #ffc1b5;
   background: #382623;
 }
+:root[data-theme="dark"] .auth-success {
+  color: #b7e3cb;
+  background: #20372c;
+}
 :root[data-theme="dark"] .transaction-message.success {
   color: #b7e3cb;
   background: #20372c;

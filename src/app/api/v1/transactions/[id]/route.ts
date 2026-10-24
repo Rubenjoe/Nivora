@@ -1,15 +1,52 @@
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { categories, transactions } from "@/lib/db/schema";
-import { hasTrustedOrigin } from "@/lib/appwrite/server";
+import { hasTrustedOrigin } from "@/lib/security/origin";
+import { requireFinanceUser } from "@/lib/finance/auth";
 import {
-  requireFinanceUser,
-  serviceUnavailable,
+  handleFinanceRouteError,
   unauthorized,
-} from "@/lib/finance/auth";
+} from "@/lib/finance/api-errors";
 import { transactionInput } from "@/lib/finance/validation";
 
 type Context = { params: Promise<{ id: string }> };
+
+export async function GET(_request: Request, context: Context) {
+  try {
+    const current = await requireFinanceUser();
+    if (!current) return unauthorized();
+    const { id } = await context.params;
+    const [row] = await current.db
+      .select({
+        transaction: transactions,
+        categoryName: categories.name,
+        categoryIcon: categories.icon,
+      })
+      .from(transactions)
+      .innerJoin(
+        categories,
+        and(
+          eq(transactions.categoryId, categories.id),
+          eq(categories.profileId, current.profile.id),
+        ),
+      )
+      .where(
+        and(
+          eq(transactions.id, id),
+          eq(transactions.profileId, current.profile.id),
+        ),
+      )
+      .limit(1);
+    if (!row)
+      return NextResponse.json(
+        { error: "Transaction not found." },
+        { status: 404 },
+      );
+    return NextResponse.json(row);
+  } catch (cause) {
+    return handleFinanceRouteError(cause);
+  }
+}
 
 export async function PATCH(request: Request, context: Context) {
   if (!hasTrustedOrigin(request))
@@ -62,8 +99,8 @@ export async function PATCH(request: Request, context: Context) {
         { status: 404 },
       );
     return NextResponse.json({ transaction: updated });
-  } catch {
-    return serviceUnavailable();
+  } catch (cause) {
+    return handleFinanceRouteError(cause);
   }
 }
 
@@ -89,7 +126,7 @@ export async function DELETE(request: Request, context: Context) {
         { status: 404 },
       );
     return NextResponse.json({ ok: true });
-  } catch {
-    return serviceUnavailable();
+  } catch (cause) {
+    return handleFinanceRouteError(cause);
   }
 }

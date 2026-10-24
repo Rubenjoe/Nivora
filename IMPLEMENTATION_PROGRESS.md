@@ -2,58 +2,161 @@
 
 ## Workflow and boundaries
 
-Work milestone-by-milestone: inspect → implement → verify → document. Workspace is `D:\Projects\nivora`; the Git root is parent `D:\Projects`. All Nivora work stays in this directory; unrelated parent untracked files are untouched. Do not deploy, commit, push, or apply production migrations without explicit authorization.
+Work milestone-by-milestone: inspect → implement → verify → document. Workspace and Git root are `D:\Projects\nivora`. Keep all work inside this project directory. Do not deploy, commit, push, or apply production migrations without explicit authorization.
+
+## Architecture decision
+
+Supabase Auth and Supabase PostgreSQL replace Appwrite as identity/session and financial-data providers. The development project is `oxjnxvqarqrilzuetzai`. Supabase tools verified live migrations `0000_rare_wither`, `0001_0001_grants_hardening`, and `0002_black_gamma_corps`; all three Drizzle history rows match the local migration hashes and journal timestamps (details below). Migration `0002` was applied only to the development project after explicit user approval.
 
 ## Milestones
 
-1. **Foundation — implemented.** Next.js App Router, strict TypeScript, Tailwind, auth pages, a responsive dashboard, a transaction entry/history route, design documentation, and a safe environment example. The interface uses editorial serif headings, a light ivory/teal palette, an optional forest/graphite dark theme, and reduced-motion-aware transitions. No financial demo values.
-2. **Appwrite authentication — partial, not live-verified.** SSR-style registration/login/logout and `/api/v1/auth/me` use server-side Appwrite SDK clients, HTTP-only session cookie, origin checking and Zod input validation. No configured Appwrite project, live integration test, protected finance dashboard, account recovery/verification, OAuth or rate limiting.
-3. **PostgreSQL/Drizzle foundation — implemented locally, external connection blocked.** Added PostgreSQL `pg` + Drizzle runtime, environment URL validation, Drizzle Kit config, generated versioned migration, profiles linked to unique verified Appwrite user IDs, profile-owned categories and `numeric(19,4)` transactions. Profile bootstrap seeds defaults idempotently. Runtime `DATABASE_URL` and migration `DIRECT_URL` are split; no credentials are configured and no Appwrite database connection/migration was attempted.
-4. **Finance APIs — partial, not live-verified.** `/api/v1/categories`, `/api/v1/transactions`, `/api/v1/transactions/[id]`, and `/api/v1/summary` implement validated, ownership-scoped finance reads and writes; `Decimal` is used for exact totals/category sums and currencies are not combined. A transaction entry/history workspace now calls these APIs, and the dashboard requests period totals, category spending, and recent records. No Appwrite/PostgreSQL service is configured, so live persisted CRUD and authorization have not been verified; the UI deliberately shows explicit unavailable states, not sample data.
-5. **Simple/Pro, budgets, extended analytics, exports and goals — not implemented.** The dashboard currently offers only an actual-data category breakdown; it does not present history or budget comparisons that the backend does not provide.
+1. **Foundation — implemented.** Next.js App Router, strict TypeScript, Tailwind, auth pages, responsive finance pages, design documentation, and safe environment example. No financial demo values.
+2. **Supabase Auth — implemented locally; hosted verification pending.** Register/login/logout/me and email confirmation callback use `@supabase/ssr`; server-side finance auth calls `getUser()`, while the Next.js proxy refreshes sessions with `getClaims()`. `node-appwrite` and the Appwrite cookie helper were removed. Dashboard email confirmation, Site URL, and redirect URLs have not been verified or changed.
+3. **Supabase PostgreSQL/Drizzle — applied and verified in development.** `profiles.supabase_user_id` is UUID and references `auth.users(id)` with `ON DELETE RESTRICT`; `0002` adds profile preferences and budgets, goals, and recurring tables. Migrations `0000`–`0002` are applied and recorded in Drizzle history. RLS/grants for profiles/categories/transactions were verified earlier; new `0002` table policies/grants were not separately audited in this task.
+4. **Connection hardening — prepared locally.** `src/lib/db/index.ts` verifies server TLS using `DATABASE_SSL_CA_PATH`; migration preflight checks `DIRECT_URL`. Public Supabase URL and publishable key are now populated in ignored `.env.local`. Database connection settings remain unset for the user to configure after rotating the exposed password.
+5. **Finance APIs — implemented locally; hosted verification pending.** `/api/v1/categories`, `/api/v1/transactions`, `/api/v1/transactions/[id]`, and `/api/v1/summary` use validated, profile-scoped reads/writes; Decimal is used for exact totals. Transaction-by-ID GET now scopes by the verified profile. Server auth verifies the Supabase Auth user before profile resolution. Since Drizzle uses a privileged connection, every query must filter by the verified profile; RLS is not the app's authorization boundary. Transaction query filters now support `from`, `to`, `kind`, and `categoryId`.
+6. **Transaction workflow UI — implemented.** `TransactionsWorkspace` supports expense/income creation, category selection with icon, date selection, optional merchant/description, transaction history view, edit with PATCH, delete with confirmation, and date/category/type filtering. Empty states shown when no transactions exist.
+7. **Dashboard, budgets, analytics, exports, goals, and recurring — implemented locally; hosted verification pending.** The dashboard consumes the analytics endpoint; profile-scoped APIs and feature workspaces cover budgets, goals/contributions, recurring schedules, profile preferences, and transaction CSV export. No live user financial values have been verified.
 
-## Database / documentation evidence
+## Migration history verification
 
-- Current schema: `src/lib/db/schema.ts`; initial migration: `drizzle/0000_rare_wither.sql`; configuration: `drizzle.config.ts`.
-- Runtime pools the connection via `DATABASE_URL`; Drizzle Kit migration expects `DIRECT_URL`. The current Drizzle Appwrite guide says direct TLS connections, Appwrite pooler port 6432 for short-lived runtime and direct engine port 5432 for migrations. Source: https://orm.drizzle.team/docs/connect-appwrite-postgres
-- Local PostgreSQL/Docker was unavailable (Docker daemon is not running; no `psql` executable found). Isolated PGlite applies the generated migration and checks the cross-profile category FK. This does not validate Appwrite networking, TLS credentials, migration grants, or live API authorization.
-- Documentation updated: `README.md`, `DESIGN.md` (new provisional interface standards; no prior `designs.md` or `DESIGN.md` was present), `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, `docs/SECURITY.md`, `docs/SETUP.md`, and `docs/ROADMAP.md`.
+Read `drizzle.__drizzle_migrations` with Supabase tools. Live rows after the approved `0002` application:
 
-## UI/design work and verification limitations
+- id 1: hash `28ba4674f9bfdc3a694d6ddc72ed72e9f33bb6a25a77ec8133280b82259930c5`, created_at `1792569402448`.
+- id 2: hash `b6b5b53c83d7e5d6be51b786ffaa6c7757752c6284970c424eab6888443e98fa`, created_at `1792571810261`.
+- id 3: hash `9cc10395e24ccc1b96a32a506ede57113a693a78187a57a49a21bbc735e95227`, created_at `1792596811460`.
 
-- No `designs.md` was present. `DESIGN.md` now records the editorial light/dark palettes, accessible control and motion rules, and honest data-state limitations.
-- Skills loaded for this work: `claude-design` (design process/taste), `frontend-ux-improvement-pass`, `frontend-responsive-tweaks`, `dogfood`, `test-driven-development`, and Vercel `web-design-guidelines`. There is no standalone `taste` skill in the available catalog. The current Vercel guideline source was fetched from `https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md`.
-- UI refinements include a persistent light/dark toggle that defaults to the system preference, coordinated theme colors on the dashboard, transactions and auth routes, category bars/recent activity from real API results, keyboard focus treatment, 44px controls, and reduced-motion-aware entrances/hover feedback. A missing standalone theme-preference resolver test was first observed failing, then passed after implementation.
-- Browser verification: the production stylesheet loads successfully (314 CSS rules). The dashboard and sign-in screens were visually inspected in light and dark themes; the transactions form/history was inspected in dark theme. Theme switching changed the rendered palette and persisted across route navigation. At the available 1262px desktop viewport, the auth document had no horizontal overflow and no clipping was visible in screenshots. Browser console showed no JS errors after the final build. The unconfigured-service state remained explicit; no fake financial values appeared.
-- A responsive resize attempt left the remote browser `innerWidth` at 1262px despite `window.resizeTo(390,844)`; no 375px/768px/mobile visual verification is claimed. The CSS still includes existing responsive breakpoints and the new controls use 44px targets.
+Local SHA-256 hashes of `drizzle/0000_rare_wither.sql`, `drizzle/0001_0001_grants_hardening.sql`, and `drizzle/0002_black_gamma_corps.sql` match the three rows respectively. Journal `when` values match the corresponding `created_at` values. The Supabase migration tool applied only `0002`; because it did not add a Drizzle ledger row, the matching Drizzle bookkeeping row was inserted separately. `npm run db:migrate` was not run.
 
-## Dependency audit
+## Identity and authorization requirements
 
-- Latest full audit: 5 high + 4 moderate development-only findings; `npm audit --omit=dev`: 0 vulnerabilities.
-- High-severity chain: `eslint-config-next@16.4.2` → `@next/eslint-plugin-next@16.4.2` → `fast-glob@3.3.1` → `micromatch@4.0.8` → `braces@3.0.3`; advisory GHSA-vfj7-8cjw-p6xm (deeply nested patterns stack-exhaustion DoS). npm's suggested `eslint-config-next@14.2.35` is a major downgrade from Next 16. The registry showed `braces@3.0.3` as latest and `fast-glob@3.3.3` as latest; no compatible safe resolution was available during this check. No force upgrade performed.
-- Additional moderate findings were introduced by Drizzle Kit's legacy dev-only `@esbuild-kit/{core-utils,esm-loader}` / nested `esbuild` dependency chain (GHSA-67mh-4wv8-2f99 for esbuild dev-server request exposure). npm's suggested Drizzle Kit `0.18.1` is a major downgrade; no such downgrade was applied. Keep tooling/dev server use restricted to trusted development environments and revisit upstream upgrades.
+- Supabase Auth owns identity/session state. Implemented integration verifies users server-side with `getUser()` and passes the verified `auth.users` UUID to profile resolution. The proxy uses `getClaims()` for session refresh; `getSession()` is not used as an authorization check.
+- Every private Drizzle operation filters by the resolved verified profile. Client IDs are never authorization.
+- Never combine currencies without a conversion model; money uses PostgreSQL numeric and Decimal.
+- Never present preview/demo values as persisted user data.
 
-## Latest UI iteration — premium palette (not yet visually approved)
+## Credentials and setup
 
-- Replaced the dark canvas token with pitch black, using subtly lifted near-black cards/fields for hierarchy; switched the interactive accent to champagne-brass and retained emerald/coral financial status colors.
-- Added `src/app/premium-palette.css` after the existing theme sheets so shared accents/surfaces remain consistent across dashboard, transactions, and authentication pages.
-- Source changes only; no test, lint, typecheck, build, or browser verification has been run after this palette revision. Earlier checks below predate it. Awaiting user review of the visual direction.
+`.env.example` contains safe placeholders only. A status-only inspection found the public Supabase variables, PostgreSQL URL formats, and CA file are present in `.env.local`; their values were not printed. This verifies only local configuration shape, not live connectivity. If the database password is rotated, update `DATABASE_URL` and `DIRECT_URL` from the Supabase Dashboard → Connect panel and point `DATABASE_SSL_CA_PATH` at the CA certificate. Never send those values in chat or print them.
 
-## Checks executed on current code
+## Verification status
 
-- `npm run format:check` — passed.
-- `npm run lint` — passed.
-- `npm run typecheck` — passed.
-- `npm run test` — passed: 4 tests (theme preference/system fallback; exact decimal/no cross-currency totals; isolated PostgreSQL migration ownership constraint).
-- `npm run db:generate` — passed; no schema changes after initial migration generation.
-- `npm run build` — passed; Next.js 16.4.2 production build produced `/`, auth routes, and finance API routes.
-- `npm audit --omit=dev` — passed, zero vulnerabilities. Full audit remains as above.
-- No live Appwrite or PostgreSQL check passed; no transaction CRUD API integration test, user session isolation test, or end-to-end test exists.
+- Earlier checks are historical; see the latest verification section below for current results.
+- Supabase Auth was not hosted end-to-end verified; Dashboard email confirmation, Site URL, and redirect allowlist were not inspected or changed.
+- Current private environment inspection: public settings and PostgreSQL URL shapes are present and the CA file resolves. Values were not printed. No live database connection was attempted in this pass.
+- Read-only Supabase MCP verification confirms the development project is active, `profiles`, `categories`, and `transactions` are empty and agree with the Drizzle schema, and both live migration hashes/timestamps match local SQL and the journal. All 3 finance tables have RLS enabled and 12 owner policies target `authenticated`; `anon` has no table grants and `authenticated` has CRUD grants. The `drizzle` schema ledger has RLS disabled, but `anon` and `authenticated` have neither schema USAGE nor table SELECT, so it is not currently exposed to those roles.
+- Inspected finance API routes: transaction GET-by-ID, PATCH, and DELETE include both transaction ID and verified profile ID in their filters; list and summary are profile-scoped; POST verifies category ownership and sets `profile_id` from the resolved profile. Runtime Drizzle uses `DATABASE_URL` and Drizzle migrations use `DIRECT_URL`. Runtime TLS sets `rejectUnauthorized: true`, with the configured CA file currently absent.
+- Added `src/lib/db/rls-simulation.test.ts` for local PGlite authenticated-role cross-user SELECT/UPDATE/DELETE regression coverage. This is a local policy simulation, not a live RLS check or proof of application API isolation.
+- The amended two-user plan is documented in `docs/AUTH_E2E_TEST_PLAN.md`; no hosted API or live RLS check has run and no test users were found in the project. Hosted testing remains blocked until the database URLs and CA file are valid, two disposable test users exist, and Dashboard settings are verified. No data was created or deleted.
+- Before cleanup, the plan requires read-only ownership/amount/stray-row checks and separately reported RLS simulation. Cleanup is scoped through Supabase tools only, follows transactions → categories → profiles → Auth users, and requires explicit deletion approval.
+- `npm install` reported 9 dependency audit findings (4 moderate, 5 high); no forced audit fixes were applied.
 
 ## Next work
 
-1. **Responsive verification:** use a viewport-capable browser to inspect 375px, 768px and wide desktop layouts; the current remote browser only allowed a 1262px viewport.
-2. **Live finance verification:** configure real Appwrite/PostgreSQL services, then test transaction CRUD and the dashboard against persisted, ownership-scoped data. Keep these features marked unverified until then.
-3. Add isolated API-level authorization tests (cross-user read/update/delete), timezone-aware date-period handling, DB migration application test and category customizations.
-4. Configure only from actual Appwrite Console credentials, then run explicitly authorized disposable/live integration checks. Keep auth/database milestones partial until those pass.
-5. Recheck dev dependency advisories after upstream releases; avoid blanket force upgrades.
+1. Configure/verify Supabase Dashboard email confirmation, Site URL, and redirect allowlist; private DB values must be populated locally after password rotation.
+2. Obtain separate approval before running the two-real-user development end-to-end plan in `docs/AUTH_E2E_TEST_PLAN.md`; include approved cleanup of created Auth users and finance rows.
+3. Verify the runtime connection role and its privileges before production.
+4. Add hosted auth, profile ownership and cross-user CRUD verification before production readiness.
+5. After core finance workflows are verified, continue with budgets and Pro Mode.
+
+## Earlier light-first Vitrea redesign — superseded (2026-10-23)
+
+- **Reference inspected:** Opened the live Vitrea overview and reviewed its desktop and mobile layout. Observed the compact branded header, rounded horizontal navigation, metric row, large chart with a narrower insight panel, and supporting card grid. Other reference pages were not inspected. The requested Nivora translation uses a light neutral canvas with a violet navigation rail, colorful but controlled KPI cards, rounded white surfaces, soft shadows, and tighter data layout.
+- **Redesigned locally:** Replaced the then-current shell with a shared light-first layout in `src/app/vitrea-ui.css`. This design was superseded by the dark graphite and glass rebuild immediately below; the finance data and APIs were retained.
+- **Charts and data:** Kept the existing SVG visualizations and finance APIs; tightened cash-flow chart label density for longer ranges. No demo figures, database changes, schema changes, migrations, or dependency additions were made for this redesign. The unauthenticated local preview showed sign-in/empty/loading states; no authenticated user data was inspected.
+- **Visual check:** Ran the local Next.js app at port 3001. Viewed the dashboard at desktop and mobile sizes, transactions at desktop and mobile sizes, and budgets at mobile size. Confirmed the mobile navigation drawer opens and the document has no horizontal overflow at 390 px (`documentElement.scrollWidth` and body width matched the 375 px browser layout width). Fixed feature page title alignment after screenshot review. This is a visual/UI check, not a live Auth or finance API verification.
+- **Validation at that time:** `npm run lint`, `npm run typecheck`, `npm run test` (24/24), `npm run format:check`, and `npm run build` passed. The build reported two Turbopack tracing warnings for dynamic filesystem access in `src/lib/db/configuration.ts`. No hosted Auth flow, live database connection, or persisted finance operation was run.
+
+## Vitrea dark graphite and glass rebuild (2026-10-23)
+
+- **Reference inspected:** Reopened the live Vitrea overview in a browser and reviewed desktop and mobile rendering. The desktop view has a compact brand/header, horizontal capsule navigation, left-side floating action dock, compact metrics, a large chart next to a narrower ratings panel, and supporting cards. On mobile, navigation shows a compact subset and the action dock moves to a bottom pill. Verified that Search opens a command palette and Create new opens a popover. Other reference routes were not inspected; Nivora has no global search or creation palette, so its dock uses only existing finance routes/actions.
+- **Redesigned locally:** Replaced the violet sidebar with horizontal desktop navigation and a compact mobile header plus accessible drawer/scrim. Added a finance quick-action dock for transactions, CSV export, and settings; the dock becomes a bottom pill on mobile. The new shared graphite canvas, layered glass panels, thin borders, restrained violet selection/actions, warm text, dark chart surfaces, focused controls, and responsive layouts apply to dashboard, transactions, budgets, analytics, goals, recurring, settings, help, and authentication.
+- **Dashboard and charts:** Retained the real API-backed finance metrics, cash-flow series, category breakdown, recent transactions, and budget/goal/recurring widgets; compacted empty/loading states. Chart colors and grid/axis text now use design tokens instead of hardcoded light-surface colors. No balances, demo data, or placeholder transactions were introduced.
+- **Functionality and scope:** Preserved Supabase Auth, the finance APIs, profile ownership checks, business calculations, routes, and database schema. Moved the existing Simple/Pro preference control to the horizontal header. The mobile drawer and quick dock expose functional destinations only. No database operations, migrations, dependencies, or hosted changes were made.
+- **Visual verification:** Viewed dashboard at desktop and mobile sizes, transactions at desktop and mobile sizes, budgets and analytics at desktop size, the sign-in page (without submitting), and the mobile drawer. Verified the drawer opens and closes with Escape. Refined the shared shell after screenshots exposed a legacy width constraint, a clipped mobile header, and feature-page heading alignment. At a 390 px browser viewport, document/body width remained 375 px and no element exceeded the viewport; the header controls fit after the narrow-width adjustment. The local browser console showed no errors. Browser preview was unauthenticated, so the API returned expected 401 responses and showed private-data/empty states. No authenticated workflow was tested.
+- **Typography and limits:** Used the system font stack to avoid a blocking remote font request; Urbanist is not bundled locally. The native browser date controls and unauthenticated sign-in empty states retain browser-specific details. Hosted Auth and database workflows remain unverified.
+- **Validation:** `npm run lint` passed; `npm run typecheck` passed; `npm run test` passed 24/24; `npm run format:check` passed; `npm run build` passed with two Turbopack warnings about dynamic filesystem access in `src/lib/db/configuration.ts`. These are local checks only. Browser requests in the unauthenticated preview returned expected 401 responses; no live Auth, database, or financial data operation was run.
+
+## Earlier local development feature-completion run (2026-10-21)
+
+### Audit inventory (repository is the source of truth)
+
+- **Implemented locally:** Supabase Auth routes/callback/session refresh; verified-user-to-profile resolution; categories and profile-scoped transaction CRUD; transaction UI; period summary/category breakdown; Decimal cash-flow helper; transaction filters; theme preference; local PGlite schema constraints and RLS simulation tests.
+- **Partially implemented / not externally verified:** dashboard and transaction pages (actual API-backed display but no live Auth/API verification); auth and finance APIs (profile-scoped source code, but no route-level integration suite); Simple Mode (default only, not a persisted mode switch); local migration history and security configuration (hosted verification status remains as stated above).
+- **Missing:** budgets, savings goals, recurring schedules, reports/custom analytics, CSV export/import, accounts/transfers, meaningful Simple/Pro mode, onboarding, persistent profile settings, account deletion, AI insights.
+- **Known safeguards/limitations:** the finance APIs return 401 on missing/invalid user; the server DB connection is not configured and no live DB check is permitted in this run. No account/transfer/refund/exclusion model exists, so no such records are counted or implied.
+
+### Milestone 1 — page protection / return path
+
+- Added a `getClaims()`-based local page gate for `/` and `/transactions*`; unauthenticated requests redirect to `/sign-in` with a same-site return path. Auth routes and `/auth/confirm` are not gated. Existing API auth remains independent and returns 401.
+- Added `safeReturnTo` to reject external, protocol-relative, and auth-loop destinations and preserve safe local paths after sign-in.
+- Added tests for accepted local destinations and rejected unsafe destinations. `npm test -- --test-name-pattern='local finance path|auth-loop'` passed 12/12 (the package script runs the full test glob; tests include existing PGlite tests).
+- Files changed: `src/lib/security/return-to.ts`, `src/lib/security/return-to.test.ts`, `src/lib/supabase/proxy.ts`, `src/app/sign-in/page.tsx`, `src/components/auth-form.tsx`.
+- No migration created. No hosted DB, deployment, hosted auth setting, or external service was accessed.
+- Remaining immediate gap: API route ownership is verified by implementation inspection and local DB/RLS tests, but meaningful route-level User A/User B CRUD tests are not yet present.
+- Verification after the change: `npm run test` passed 12/12; `npm run lint`, `npm run typecheck`, `npm run format:check`, and `npm run build` passed. These are local checks only. The middleware page gate is not a substitute for API authorization.
+
+### Subsequent feature milestones
+
+Not yet implemented in this run: budgets; savings goals; recurring transactions; analytics beyond current-month/last-month summary; CSV export/import; accounts/transfers; functional Simple/Pro preferences; onboarding/settings; AI insights. No related migration has been created or applied. These features must not be labeled complete until persistence, authorization, tests, and UX are implemented. Continue in the user-requested milestone order; external database configuration is explicitly out of scope for this local-only run.
+
+### Earlier UI polish pass — superseded by later visual review
+
+- Added a cohesive surface/rhythm layer in `src/app/features.css`: consistent content gutters, sticky translucent top bar, restrained warm-surface depth, refined card spacing and type scale, stronger active-navigation state, minimum-size controls, clear focus treatment, and reduced-motion-safe interaction transitions.
+- Refined responsive layout rules for narrow viewports (compact page gutters/cards, no forced minimum chart width, safe-area-aware scrollable mobile drawer) and retained the existing theme tokens and financial status colors.
+- Code-level optimization review found repeated override layers and several hardcoded dark defaults in `features.css`; the new pass limits itself to final shared selectors and theme-specific surfaces, without altering data behavior or dependencies. This is a targeted polish layer, not a full CSS deduplication/refactor.
+- **Visual approval gate:** no browser screenshot/manual check, lint, typecheck, test, format check, or build was run for this creative pass, per the UX workflow. The CSS changes are ready for review but remain visually unverified. Once the user approves the direction, run the local checks and inspect desktop/mobile rendering before claiming completion.
+
+### Screenshot-driven layout correction
+
+- The supplied desktop screenshot showed the dashboard hero eyebrow colliding with the sticky top bar and the summary cards touching the chart row; it also showed chart/empty-state panels stretching to an unnecessarily tall shared row.
+- Updated `src/app/features.css` to provide more clearance below the sticky top bar, a deliberate gap after summary metrics, start-aligned dashboard panels, and a zero-min-width main column to prevent flex/grid overflow. Narrow layouts retain compact gutters and a scrollable safe-area-aware drawer.
+- These are source-level corrections only. No rendered check or automated check has run yet; visual approval/inspection remains the gate.
+
+### Vitrea-inspired dashboard visual pass (2026-10-23)
+
+- Added `src/app/vitrea-ui.css` as a final visual layer and imported it from the App Router layout. The shell now uses a centered pill navigation bar, dark translucent glass surfaces, subtle violet accents, compact metrics, and responsive mobile drawer behavior inspired by the supplied Vitrea reference.
+- Applied the same surface treatment to finance cards and controls while keeping Nivora's existing labels, API-backed figures, empty states, and navigation destinations. No images, demo figures, schema changes, or data/auth behavior were added.
+- Verified desktop and narrow/mobile rendering in a local browser preview at `http://localhost:3000`; navigation, dashboard hierarchy, metric cards, section cards, quick action, and mobile drawer render without added imagery. The preview showed the existing unauthenticated/private-data state; no finance data was fabricated. The theme toggle was also checked in both themes and restored to its original dark state after the check.
+- Browser review caught and fixed the mobile scrim appearing above the open drawer; the drawer is now visible and all current navigation links remain available.
+- `npm run lint`, `npm run typecheck`, `npm run test` (23/23), and `npm run build` passed. The production build reported existing dynamic filesystem tracing warnings in `src/lib/db/configuration.ts`.
+- `npm run format:check` remains failing because it reports formatting issues in five existing files (`premium.css`, `cash-flow-chart.tsx`, `dashboard-overview.tsx`, `donut-chart.tsx`, and `transactions-workspace.tsx`); the changed layout, Vitrea stylesheet, and progress note pass a targeted Prettier check. Those existing files were not reformatted as part of this UI task.
+
+### Follow-up motion polish (2026-10-23) — superseded by later verification
+
+- Added short staggered entrance motion to dashboard sections, small transform-only hover feedback for cards/navigation/actions, and tabular numerals for dashboard values in `src/app/vitrea-ui.css`.
+- Reduced the minimum height of the dashboard's two primary panels from 340px to 300px on desktop and removed the forced minimum on narrow screens, keeping empty states from dominating the layout.
+- All added movement is limited to opacity/transform, hover movement is disabled when reduced motion is requested, and the reduced-motion override disables entrance/interaction transitions.
+- Source changes are ready for review. No post-change browser preview or automated checks have been run; wait for user approval of the visual direction before those checks.
+
+### Full UI, performance, architecture, and workspace refactor (2026-10-23)
+
+- **Reference inspection:** the supplied Vitrea overview was reachable. The local app uses its general direction (pill navigation, modular surfaces, compact metric cards, and restrained charts) while retaining Nivora branding and API-backed data. No reference branding/assets or demo financial values were copied.
+- **UI and data presentation:** dashboard title/actions are concise; metrics show net cash flow, income, and expenses instead of unsupported balance/savings totals. Empty and unauthenticated states remain explicit. Chart offsets are computed in one pure pass, category colors are deterministic, and the single-point cash-flow chart avoids invalid coordinates. Shared focus/motion/surface rules were aligned with the dark-first Nivora design note.
+- **Request/database work:** dashboard uses one analytics request in Simple mode and analytics plus recurring in Pro mode (previously it also requested summary and transactions separately). Independent analytics queries run in parallel. Budget and goal progress is grouped rather than queried once per row. Profile creation is conflict-safe, preserves an existing display name, and seeds default categories in one batched insert. Transaction list responses stay bounded at 100 rows and the UI can load subsequent pages.
+- **Workspace/dependency cleanup:** confirmed the actual Git root is `D:\Projects\nivora`; no parent directory content was inspected or changed. Removed the tracked `a.href)` browser-evaluation artifact after confirming no code references. Removed the duplicate root certificate after confirming it was byte-identical to the retained `certs/` certificate and the configured CA path resolves to the retained copy. Removed three direct dependencies verified unused in `src/`. `.env.example` now contains placeholders only.
+- **Performance evidence:** local development HTTP timings (single requests, no baseline comparison) returned dashboard 200 in 0.066 s, transactions 200 in 0.236 s, and unauthenticated analytics API 401 in 0.016 s. A local production server also returned dashboard 200 in 0.253 s, transactions 200 in 0.023 s, and unauthenticated analytics API 401 in 0.071 s (single, concurrent smoke requests). These are not statistically meaningful comparisons and do not establish a speedup or authenticated DB latency. The optimized production build completes but warns that dynamic filesystem resolution in `src/lib/db/configuration.ts` may trace the whole project; unresolved and should be addressed without weakening TLS/CA behavior.
+- **Environment/integration limits:** status-only script confirmed public variables, PostgreSQL URL syntax, and CA file presence without outputting values. No live database connection, hosted Auth configuration, account flow, or finance data operation was performed. Dashboard Site URL/redirect/email confirmation settings and user-level cross-account checks remain unverified.
+- **Latest verification:** `npm run lint` passed; `npm run typecheck` passed; `npm run test` passed 24/24; `npm run format:check` passed; `npm run build` passed with the tracing warnings above; `npm audit --omit=dev` found 0 production vulnerabilities. Local browser preview was visually reviewed in unauthenticated state at desktop and 390×844 mobile size. Mobile dashboard primary action was within the viewport, document width matched the viewport, and the drawer opened with all navigation entries visible. Route smoke checks: `/` 200, `/transactions` 200, `/api/v1/analytics` 401 without a session.
+- **Remaining:** hosted Auth and live DB connectivity remain unverified. Keep live two-user verification under its separate approval gate. Do not claim hosted integration or real financial persistence until those checks run.
+
+### Full UI/performance/workspace audit — findings (2026-10-23)
+
+- The supplied Vitrea reference is reachable. The inspected overview uses a dark glass visual language, pill navigation, concise metric cards, and modular charts/lists. Its brand and store metrics are not being copied into Nivora.
+- Git reports `D:\Projects\nivora` as the repository root (the on-disk `.git` directory is inside this project). The project working tree already contains many modified and untracked files from prior work; they are preserved. No parent repository contents were inspected or changed.
+- Current app structure is Next.js App Router with Supabase Auth, server-side Drizzle access, versioned finance APIs, interactive client workspaces, SVG charts, and one CSS bundle assembled from multiple overlapping global stylesheets. There is no `public/` asset directory; the shell references a Nivora logo path that is absent.
+- Confirmed repeated work in the dashboard: it issues four parallel requests (summary, transactions, analytics, recurring) even though analytics already returns totals/category data; recurring is fetched even in Simple mode. Each authenticated API call verifies the user and runs `resolveProfile`, whose current category seeding performs 15 separate conflict-tolerant inserts. The analytics and budget/goal APIs also query progress once per budget or goal.
+- The transaction list API is bounded to 100 rows, but the UI has no pagination or server-side search. This keeps responses bounded but makes older rows unreachable from the UI.
+- The environment file was checked without printing values: the public Supabase settings and both PostgreSQL URLs are present and parse as configured values; the configured CA file exists under `certs/`. This confirms local file/config shape only, not connectivity or that hosted Auth settings are correct.
+- `.env.example` contained non-placeholder URL/key/database entries; values were replaced with safe placeholders without repeating them. The tracked `a.href)` file contains only an evaluation-error artifact and has no code references. `prod-ca-2021.crt` is byte-identical to `certs/supabase-ca.crt`; the configured local CA resolves to the `certs/` copy and no runtime code refers to the root duplicate.
+- No database query, migration, deployment, Auth setting change, or live data operation was performed during this audit.
+- Performance baseline evidence so far is code-path and build-output inspection; production browser navigation timing has not yet been measured. The last observed local build emitted 18 static chunk files (847,142 total bytes, uncompressed) and reported dynamic filesystem tracing warnings in `src/lib/db/configuration.ts`.
+
+### Premium visual refinement pass (2026-10-24)
+
+- **Color/surface system:** updated the shared dark tokens in `src/app/vitrea-ui.css` to the refined graphite palette (bg `#111216`, ivory text `#f3f2f7`, secondary `#a3a6b2`, violet accent `#a995ff`, income mint `#70d6b2`, expense coral `#ff897f`, chart blue `#87b7ff`, savings amber `#f4c878`) with adjusted light-theme counterparts. Metric cards gained a tinted surface gradient, accent-tinted icon containers, and the existing accent line; labels and `+`/`−` signs remain so status is never color-only.
+- **Charts:** cash-flow chart rewritten for a wider left axis gutter (currency labels no longer clip), thinner area strokes, softened area fills, theme-aware gridline contrast, a subtle line drop-shadow in dark mode, and edge-anchored first/last date labels; smoothing uses horizontal mid-point control points so plotted vertex values stay exact. Donut chart segments and track now use the shared semantic palette with a thinner stroke.
+- **Motion:** brief staggered entrances (300 ms, ≤10 px, opacity/transform) for dashboard/feature sections, 140–180 ms hover/press feedback for cards/buttons/dock, animated profile-menu entrance, and row hover states — all disabled under `prefers-reduced-motion`, which the existing global override covers. No new dependency added; no scroll listeners or scroll-jacking.
+- **Scrolling/layout:** `scroll-margin-top` raised to 96 px for the transaction list anchor and smooth in-page scrolling kept native. Section label typography, category-list contrast, and legend alignment refined.
+- **Checks:** `npm run lint`, `npm run typecheck`, `npm run test` (24/24), `npm run format:check`, and `npm run build` all passed after the changes (Prettier was applied to `premium.css`, `transactions.css`, and `cash-flow-chart.tsx`). No API, auth, schema, or data-behavior changes were made.
+- **Visual verification (partial, unauthenticated state):** live browser inspection at desktop width confirmed the dashboard and transactions pages render the refined system — metric cards show distinct tinted icon containers and accent lines, token values resolve to the new palette (`--color-bg: #111216`, `--color-primary: #a995ff`, income `#70d6b2`, expense `#ff897f`), no horizontal overflow at 1262 px, no console errors, active nav pill state correct on Dashboard/Transactions/Budgets, all eight routes returned 200, and light/dark toggling round-trips. Light theme was visually reviewed on the budgets page (readable, coherent). Not yet inspected: authenticated charts with real data, 390 px mobile rendering, and emulated reduced-motion rendering. The production build warnings from `src/lib/db/configuration.ts` remain documented and unresolved.

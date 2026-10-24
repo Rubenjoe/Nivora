@@ -2,44 +2,65 @@ import { and, eq } from "drizzle-orm";
 import { categories, profiles } from "./schema";
 import type { getDatabase } from "./index";
 
-const defaults = [
-  ["Food & dining", "expense", "utensils"],
+export const defaultCategories = [
+  ["Food", "expense", "utensils"],
   ["Transport", "expense", "car-front"],
-  ["Home", "expense", "house"],
+  ["Housing", "expense", "house"],
   ["Shopping", "expense", "shopping-bag"],
   ["Health", "expense", "heart-pulse"],
+  ["Education", "expense", "graduation-cap"],
+  ["Entertainment", "expense", "clapperboard"],
+  ["Bills", "expense", "receipt"],
   ["Other", "expense", "circle-help"],
   ["Salary", "income", "briefcase-business"],
-  ["Other income", "income", "circle-help"],
+  ["Freelance", "income", "laptop"],
+  ["Business", "income", "building-2"],
+  ["Interest", "income", "percent"],
+  ["Gifts", "income", "gift"],
+  ["Other", "income", "circle-help"],
 ] as const;
 
 type Database = ReturnType<typeof getDatabase>;
 
 export async function resolveProfile(
   db: Database,
-  identity: { id: string; name: string },
+  verifiedAuthUser: { id: string; name: string },
 ) {
   return db.transaction(async (tx) => {
-    const [profile] = await tx
+    const [insertedProfile] = await tx
       .insert(profiles)
       .values({
-        appwriteUserId: identity.id,
-        displayName: identity.name || "Nivora member",
+        supabaseUserId: verifiedAuthUser.id,
+        displayName: verifiedAuthUser.name || "Nivora member",
       })
-      .onConflictDoUpdate({
-        target: profiles.appwriteUserId,
-        set: {
-          displayName: identity.name || "Nivora member",
-          updatedAt: new Date(),
-        },
-      })
+      .onConflictDoNothing({ target: profiles.supabaseUserId })
       .returning();
-    for (const [name, kind, icon] of defaults) {
-      await tx
-        .insert(categories)
-        .values({ profileId: profile.id, name, kind, icon })
-        .onConflictDoNothing();
-    }
+
+    const [profile] = insertedProfile
+      ? [insertedProfile]
+      : await tx
+          .select()
+          .from(profiles)
+          .where(eq(profiles.supabaseUserId, verifiedAuthUser.id))
+          .limit(1);
+
+    if (!profile)
+      throw new Error("Unable to resolve the authenticated profile.");
+
+    await tx
+      .insert(categories)
+      .values(
+        defaultCategories.map(([name, kind, icon]) => ({
+          profileId: profile.id,
+          name,
+          kind,
+          icon,
+        })),
+      )
+      .onConflictDoNothing({
+        target: [categories.profileId, categories.name, categories.kind],
+      });
+
     return profile;
   });
 }

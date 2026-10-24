@@ -777,6 +777,15 @@ a:focus-visible {
   font-size: 11px;
   line-height: 1.5;
 }
+.auth-success {
+  margin: 0;
+  padding: 10px 12px;
+  color: #28614b;
+  background: #eaf5ee;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+}
 .auth-submit {
   min-height: 44px;
   display: flex;

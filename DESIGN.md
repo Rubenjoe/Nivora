@@ -1,32 +1,33 @@
-# Nivora interface principles
+# Nivora design system
 
-This file records the design intent currently visible in the application. No repository `designs.md` or prior `DESIGN.md` was present during the audit; this is a new, provisional reference derived from the product brief and existing implementation, not a recovered design source.
+This document describes the current interface direction and token sources. It is maintained against the actual styles in `src/app/`.
 
 ## Direction
 
-Private-banking restraint: warm ivory and ink in light mode; true pitch black with softly lifted black surfaces in dark mode; champagne-brass is the restrained interface accent, while emerald and coral continue to identify positive and negative financial values. Editorial serif headings sit beside a legible sans-serif interface. Avoid neon contrast, decorative gradients, synthetic financial data, trend claims without history, and component-library defaults that weaken this identity.
+Use a dark-first finance workspace built from graphite backgrounds, softly illuminated glass surfaces, warm neutral text, and restrained violet highlights. Keep financial status colors distinct and meaningful. Use blur selectively, maintain readable contrast, and avoid decorative imagery, demo numbers, neon effects, or distracting motion. An explicitly saved light preference remains available.
 
-## Tokens
+Vitrea's rendered overview informed the horizontal glass navigation, compact metric row, prominent chart with a narrower insight panel, translucent control dock, and mobile bottom dock. Nivora retains its own name, copy, product data, routes, and component implementation. The app uses an installed system font stack rather than requesting a remote font.
 
-The source of truth is `src/app/globals.css` `:root`:
+## Tokens and typography
 
-- `--paper`: warm ivory canvas (`#f7f4ed`); `--surface`: soft white cards and controls (`#fffdf9`).
-- `--ink` / `--muted`: ink-brown primary and legible secondary text.
-- `--deep`: high-emphasis brand and dark surfaces.
-- `--accent`: champagne-brass interactive accent.
-- `--positive`, `--negative`, `--warning`: financial status roles; never communicate status by color alone.
-- `--line`: quiet dividers; `--focus-ring`: visible keyboard focus; `--radius-card`: shared card radius.
+The active token sources are `src/app/vitrea-ui.css` and `src/components/theme-toggle.tsx`; `globals.css`, `theme.css`, `dark-theme.css`, `premium-palette.css`, `premium.css`, and `features.css` supply underlying component styles. `vitrea-ui.css` is imported last so its shared graphite and glass system takes precedence. Check these files together before introducing a new global color or spacing value.
 
-Dark mode uses a true `#000000` page canvas, `#0a0a0a` lifted surfaces, warm ivory text, subtle charcoal dividers and champagne-brass accents. Financial positive/negative meanings retain emerald/coral. The theme defaults to the system preference on load unless a persisted light/dark choice exists; toggles update page chrome color and synchronize across open tabs.
+Use the existing sans-serif system stack and clear type hierarchy. Financial values use tabular numerals where available. Keep content aligned to a consistent max width and use shared card/control radii, quiet borders, and visible focus rings.
 
-## Typography and layout
+Semantic color roles (dark values): background `#111216`, raised surfaces from translucent charcoal, primary text `#f3f2f7`, secondary text `#a3a6b2`, violet accent `#a995ff`, income/positive `#70d6b2`, expense/negative `#ff897f`, secondary chart series `#87b7ff`, savings/goal accent `#f4c878`. Metric cards differentiate through a small tinted icon container, a top accent line, and a subtle tinted surface gradient; labels and signs (`+`/`−`) stay visible so financial status is never communicated by color alone. Chart palettes reuse the same roles: cash-flow lines use income/expense colors with soft area fills, and donut segments draw from the shared category palette.
 
-Use Georgia/serif for editorial headings and a native sans-serif stack for controls and body copy. Apply tabular numerals to financial values. Keep a clear content width and align summary cards, sections, and period controls. Mobile navigation is a fixed bottom bar; dashboard summaries stack at narrow widths. Controls should have comfortable 44px targets when practical.
+Motion: short staggered section entrances (~300 ms, ≤10 px, opacity/transform only), 140–180 ms hover/press feedback, animated profile-menu entrance, and no repeated dashboard animation on filter changes (sections only re-animate on route render). All movement is disabled under `prefers-reduced-motion`. Sticky header offset is accounted for with scroll margins so in-page navigation does not hide headings.
 
-## Interaction and accessibility
+## Layout and interaction
 
-Use semantic links for navigation, buttons for actions, real labels for form inputs, visible `:focus-visible` outlines, skip links to primary content, explicit loading/error feedback, and reduced-motion support. Icons that are decorative should remain hidden from assistive technology; icon-only controls need accessible names. Charts must include readable data alternatives. Use motion for clear state feedback: short opacity/transform entrances for dashboard and transaction surfaces, subtle lift on pointer hover, and restrained category-bar growth. Avoid loops and layout-moving effects; respect `prefers-reduced-motion`. Do not show unavailable product areas as working controls.
+Desktop uses a compact horizontal navigation bar with all implemented routes, real account controls, appearance, and the Simple/Pro preference. A separate dock provides working transaction, CSV export, and settings actions. At narrower widths navigation moves to an accessible drawer; the dock becomes a bottom pill with touch-sized controls. Dashboard cards and charts must fit without horizontal page overflow.
 
-## Current limitations
+Use semantic links and buttons, explicit labels, accessible names for icon actions, visible keyboard focus, loading/error/empty states, and `prefers-reduced-motion`. Motion should be brief and limited to opacity/transform. Do not imply that unsupported routes, settings, or integrations work.
 
-The repository now has sign-in/sign-up screens, a transaction entry/history workspace, and a dashboard that requests period totals, category breakdowns, and recent entries from versioned APIs. These UI flows are not verified against a live Appwrite identity or PostgreSQL database; when those services are unavailable, the interface shows an explicit empty/error state rather than seeded figures. Simple/Pro switching, budgets, long-range analytics, export controls, and goal management remain unimplemented. See `IMPLEMENTATION_PROGRESS.md` for evidence and visual-test limitations.
+## Data presentation
+
+Dashboard figures come from the versioned finance API and are profile-scoped on the server. Show net cash flow, income, and expenses; do not show account balance or savings unless a corresponding data model supports it. Empty states explain how real entries will populate the page. Use category colors consistently and provide text/amount alternatives to charts.
+
+## Current verification limits
+
+The local browser preview was visually reviewed in the unauthenticated state at desktop and mobile widths. The real Auth and database flows remain unverified. See `IMPLEMENTATION_PROGRESS.md` for the checks actually run and remaining external configuration work.

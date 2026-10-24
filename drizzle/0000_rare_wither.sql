@@ -7,23 +7,25 @@ CREATE TABLE "categories" (
 	"kind" "transaction_kind" NOT NULL,
 	"icon" varchar(48) DEFAULT 'circle-help' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "categories_profile_id_id_unique" UNIQUE("profile_id","id"),
+	CONSTRAINT "categories_profile_id_id_kind_unique" UNIQUE("profile_id","id","kind"),
 	CONSTRAINT "categories_profile_name_kind_unique" UNIQUE("profile_id","name","kind")
 );
 --> statement-breakpoint
+ALTER TABLE "categories" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "profiles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"appwrite_user_id" varchar(128) NOT NULL,
+	"supabase_user_id" uuid NOT NULL,
 	"display_name" varchar(100) NOT NULL,
 	"currency" varchar(3) DEFAULT 'INR' NOT NULL,
 	"timezone" varchar(64) DEFAULT 'Asia/Kolkata' NOT NULL,
 	"mode" "interface_mode" DEFAULT 'simple' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "profiles_appwrite_user_id_unique" UNIQUE("appwrite_user_id"),
+	CONSTRAINT "profiles_supabase_user_id_unique" UNIQUE("supabase_user_id"),
 	CONSTRAINT "profiles_currency_check" CHECK ("profiles"."currency" ~ '^[A-Z]{3}$')
 );
 --> statement-breakpoint
+ALTER TABLE "profiles" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "transactions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"profile_id" uuid NOT NULL,
@@ -40,9 +42,23 @@ CREATE TABLE "transactions" (
 	CONSTRAINT "transactions_currency_check" CHECK ("transactions"."currency" ~ '^[A-Z]{3}$')
 );
 --> statement-breakpoint
+ALTER TABLE "transactions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "categories" ADD CONSTRAINT "categories_profile_id_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."profiles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "profiles" ADD CONSTRAINT "profiles_supabase_user_id_users_id_fk" FOREIGN KEY ("supabase_user_id") REFERENCES "auth"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_profile_id_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."profiles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "transactions" ADD CONSTRAINT "transactions_profile_category_fk" FOREIGN KEY ("profile_id","category_id") REFERENCES "public"."categories"("profile_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_profile_category_fk" FOREIGN KEY ("profile_id","category_id","kind") REFERENCES "public"."categories"("profile_id","id","kind") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "categories_profile_kind_idx" ON "categories" USING btree ("profile_id","kind");--> statement-breakpoint
 CREATE INDEX "transactions_profile_date_idx" ON "transactions" USING btree ("profile_id","occurred_on");--> statement-breakpoint
-CREATE INDEX "transactions_profile_kind_date_idx" ON "transactions" USING btree ("profile_id","kind","occurred_on");
+CREATE INDEX "transactions_profile_kind_date_idx" ON "transactions" USING btree ("profile_id","kind","occurred_on");--> statement-breakpoint
+CREATE POLICY "categories_select_own" ON "categories" AS PERMISSIVE FOR SELECT TO "authenticated" USING (exists (select 1 from "profiles" where "profiles"."id" = "categories"."profile_id" and "profiles"."supabase_user_id" = (select auth.uid())));--> statement-breakpoint
+CREATE POLICY "categories_insert_own" ON "categories" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK (exists (select 1 from "profiles" where "profiles"."id" = "categories"."profile_id" and "profiles"."supabase_user_id" = (select auth.uid())));--> statement-breakpoint
+CREATE POLICY "categories_update_own" ON "categories" AS PERMISSIVE FOR UPDATE TO "authenticated" USING (exists (select 1 from "profiles" where "profiles"."id" = "categories"."profile_id" and "profiles"."supabase_user_id" = (select auth.uid()))) WITH CHECK (exists (select 1 from "profiles" where "profiles"."id" = "categories"."profile_id" and "profiles"."supabase_user_id" = (select auth.uid())));--> statement-breakpoint
+CREATE POLICY "categories_delete_own" ON "categories" AS PERMISSIVE FOR DELETE TO "authenticated" USING (exists (select 1 from "profiles" where "profiles"."id" = "categories"."profile_id" and "profiles"."supabase_user_id" = (select auth.uid())));--> statement-breakpoint
+CREATE POLICY "profiles_select_own" ON "profiles" AS PERMISSIVE FOR SELECT TO "authenticated" USING ("profiles"."supabase_user_id" = (select auth.uid()));--> statement-breakpoint
+CREATE POLICY "profiles_insert_own" ON "profiles" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ("profiles"."supabase_user_id" = (select auth.uid()));--> statement-breakpoint
+CREATE POLICY "profiles_update_own" ON "profiles" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ("profiles"."supabase_user_id" = (select auth.uid())) WITH CHECK ("profiles"."supabase_user_id" = (select auth.uid()));--> statement-breakpoint
+CREATE POLICY "profiles_delete_own" ON "profiles" AS PERMISSIVE FOR DELETE TO "authenticated" USING ("profiles"."supabase_user_id" = (select auth.uid()));--> statement-breakpoint
+CREATE POLICY "transactions_select_own" ON "transactions" AS PERMISSIVE FOR SELECT TO "authenticated" USING (exists (select 1 from "profiles" where "profiles"."id" = "transactions"."profile_id" and "profiles"."supabase_user_id" = (select auth.uid())));--> statement-breakpoint
+CREATE POLICY "transactions_insert_own" ON "transactions" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK (exists (select 1 from "profiles" where "profiles"."id" = "transactions"."profile_id" and "profiles"."supabase_user_id" = (select auth.uid())));--> statement-breakpoint
+CREATE POLICY "transactions_update_own" ON "transactions" AS PERMISSIVE FOR UPDATE TO "authenticated" USING (exists (select 1 from "profiles" where "profiles"."id" = "transactions"."profile_id" and "profiles"."supabase_user_id" = (select auth.uid()))) WITH CHECK (exists (select 1 from "profiles" where "profiles"."id" = "transactions"."profile_id" and "profiles"."supabase_user_id" = (select auth.uid())));--> statement-breakpoint
+CREATE POLICY "transactions_delete_own" ON "transactions" AS PERMISSIVE FOR DELETE TO "authenticated" USING (exists (select 1 from "profiles" where "profiles"."id" = "transactions"."profile_id" and "profiles"."supabase_user_id" = (select auth.uid())));

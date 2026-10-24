@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { and, asc, eq } from "drizzle-orm";
 import { categories } from "@/lib/db/schema";
 import { z } from "zod";
-import { hasTrustedOrigin } from "@/lib/appwrite/server";
+import { hasTrustedOrigin } from "@/lib/security/origin";
+import { requireFinanceUser } from "@/lib/finance/auth";
 import {
-  requireFinanceUser,
-  serviceUnavailable,
+  handleFinanceRouteError,
   unauthorized,
-} from "@/lib/finance/auth";
+} from "@/lib/finance/api-errors";
 
 const categorySchema = z.object({
   name: z.string().trim().min(1).max(64),
@@ -27,8 +27,8 @@ export async function GET() {
       categories: rows,
       currency: current.profile.currency,
     });
-  } catch {
-    return serviceUnavailable();
+  } catch (cause) {
+    return handleFinanceRouteError(cause);
   }
 }
 
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     return NextResponse.json({ category: created }, { status: 201 });
-  } catch {
-    return serviceUnavailable();
+  } catch (cause) {
+    return handleFinanceRouteError(cause);
   }
 }

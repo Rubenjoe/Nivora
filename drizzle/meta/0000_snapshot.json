@@ -1,5 +1,5 @@
 {
-  "id": "a1f86d21-65ef-4c9a-8017-916c0ef02d6a",
+  "id": "fa823521-0ad9-4262-bc13-e087da04eae4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -89,12 +89,13 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "categories_profile_id_id_unique": {
-          "name": "categories_profile_id_id_unique",
+        "categories_profile_id_id_kind_unique": {
+          "name": "categories_profile_id_id_kind_unique",
           "nullsNotDistinct": false,
           "columns": [
             "profile_id",
-            "id"
+            "id",
+            "kind"
           ]
         },
         "categories_profile_name_kind_unique": {
@@ -107,9 +108,47 @@
           ]
         }
       },
-      "policies": {},
+      "policies": {
+        "categories_select_own": {
+          "name": "categories_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "exists (select 1 from \"profiles\" where \"profiles\".\"id\" = \"categories\".\"profile_id\" and \"profiles\".\"supabase_user_id\" = (select auth.uid()))"
+        },
+        "categories_insert_own": {
+          "name": "categories_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "exists (select 1 from \"profiles\" where \"profiles\".\"id\" = \"categories\".\"profile_id\" and \"profiles\".\"supabase_user_id\" = (select auth.uid()))"
+        },
+        "categories_update_own": {
+          "name": "categories_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "exists (select 1 from \"profiles\" where \"profiles\".\"id\" = \"categories\".\"profile_id\" and \"profiles\".\"supabase_user_id\" = (select auth.uid()))",
+          "withCheck": "exists (select 1 from \"profiles\" where \"profiles\".\"id\" = \"categories\".\"profile_id\" and \"profiles\".\"supabase_user_id\" = (select auth.uid()))"
+        },
+        "categories_delete_own": {
+          "name": "categories_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "exists (select 1 from \"profiles\" where \"profiles\".\"id\" = \"categories\".\"profile_id\" and \"profiles\".\"supabase_user_id\" = (select auth.uid()))"
+        }
+      },
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.profiles": {
       "name": "profiles",
@@ -122,9 +161,9 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "appwrite_user_id": {
-          "name": "appwrite_user_id",
-          "type": "varchar(128)",
+        "supabase_user_id": {
+          "name": "supabase_user_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -172,25 +211,78 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "profiles_supabase_user_id_users_id_fk": {
+          "name": "profiles_supabase_user_id_users_id_fk",
+          "tableFrom": "profiles",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "supabase_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "profiles_appwrite_user_id_unique": {
-          "name": "profiles_appwrite_user_id_unique",
+        "profiles_supabase_user_id_unique": {
+          "name": "profiles_supabase_user_id_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "appwrite_user_id"
+            "supabase_user_id"
           ]
         }
       },
-      "policies": {},
+      "policies": {
+        "profiles_select_own": {
+          "name": "profiles_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"profiles\".\"supabase_user_id\" = (select auth.uid())"
+        },
+        "profiles_insert_own": {
+          "name": "profiles_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"profiles\".\"supabase_user_id\" = (select auth.uid())"
+        },
+        "profiles_update_own": {
+          "name": "profiles_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"profiles\".\"supabase_user_id\" = (select auth.uid())",
+          "withCheck": "\"profiles\".\"supabase_user_id\" = (select auth.uid())"
+        },
+        "profiles_delete_own": {
+          "name": "profiles_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"profiles\".\"supabase_user_id\" = (select auth.uid())"
+        }
+      },
       "checkConstraints": {
         "profiles_currency_check": {
           "name": "profiles_currency_check",
           "value": "\"profiles\".\"currency\" ~ '^[A-Z]{3}$'"
         }
       },
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.transactions": {
       "name": "transactions",
@@ -337,19 +429,59 @@
           "tableTo": "categories",
           "columnsFrom": [
             "profile_id",
-            "category_id"
+            "category_id",
+            "kind"
           ],
           "columnsTo": [
             "profile_id",
-            "id"
+            "id",
+            "kind"
           ],
-          "onDelete": "restrict",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "transactions_select_own": {
+          "name": "transactions_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "exists (select 1 from \"profiles\" where \"profiles\".\"id\" = \"transactions\".\"profile_id\" and \"profiles\".\"supabase_user_id\" = (select auth.uid()))"
+        },
+        "transactions_insert_own": {
+          "name": "transactions_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "exists (select 1 from \"profiles\" where \"profiles\".\"id\" = \"transactions\".\"profile_id\" and \"profiles\".\"supabase_user_id\" = (select auth.uid()))"
+        },
+        "transactions_update_own": {
+          "name": "transactions_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "exists (select 1 from \"profiles\" where \"profiles\".\"id\" = \"transactions\".\"profile_id\" and \"profiles\".\"supabase_user_id\" = (select auth.uid()))",
+          "withCheck": "exists (select 1 from \"profiles\" where \"profiles\".\"id\" = \"transactions\".\"profile_id\" and \"profiles\".\"supabase_user_id\" = (select auth.uid()))"
+        },
+        "transactions_delete_own": {
+          "name": "transactions_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "exists (select 1 from \"profiles\" where \"profiles\".\"id\" = \"transactions\".\"profile_id\" and \"profiles\".\"supabase_user_id\" = (select auth.uid()))"
+        }
+      },
       "checkConstraints": {
         "transactions_amount_positive": {
           "name": "transactions_amount_positive",
@@ -360,7 +492,7 @@
           "value": "\"transactions\".\"currency\" ~ '^[A-Z]{3}$'"
         }
       },
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     }
   },
   "enums": {

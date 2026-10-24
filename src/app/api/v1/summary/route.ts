@@ -3,11 +3,11 @@ import { NextResponse } from "next/server";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { categories, transactions } from "@/lib/db/schema";
 import { calculateCashFlow } from "@/lib/finance/calculations";
+import { requireFinanceUser } from "@/lib/finance/auth";
 import {
-  requireFinanceUser,
-  serviceUnavailable,
+  handleFinanceRouteError,
   unauthorized,
-} from "@/lib/finance/auth";
+} from "@/lib/finance/api-errors";
 import { transactionQuery } from "@/lib/finance/validation";
 
 export async function GET(request: Request) {
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
       totals,
       categories: categoriesBySpend,
     });
-  } catch {
-    return serviceUnavailable();
+  } catch (cause) {
+    return handleFinanceRouteError(cause);
   }
 }

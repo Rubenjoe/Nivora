@@ -16,4 +16,5 @@ export const transactionQuery = z.object({
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
   kind: z.enum(["income", "expense"]).optional(),
+  categoryId: z.string().uuid().optional(),
 });

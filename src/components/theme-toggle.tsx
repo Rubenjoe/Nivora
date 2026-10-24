@@ -7,17 +7,14 @@ import { resolveThemePreference, type Theme } from "@/lib/theme-preferences";
 const subscribers = new Set<() => void>();
 
 function preferredTheme(): Theme {
-  if (typeof window === "undefined") return "light";
-  const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  if (typeof window === "undefined") return "dark";
   try {
     return resolveThemePreference(
       window.localStorage.getItem("nivora-theme"),
-      systemTheme,
+      "dark",
     );
   } catch {
-    return systemTheme;
+    return "dark";
   }
 }
 
@@ -26,7 +23,7 @@ if (typeof document !== "undefined") {
   document.documentElement.dataset.theme = currentTheme;
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", currentTheme === "dark" ? "#000000" : "#f7f4ed");
+    ?.setAttribute("content", currentTheme === "dark" ? "#111315" : "#f3f1f8");
 }
 
 function applyTheme(theme: Theme, persist = false) {
@@ -34,7 +31,7 @@ function applyTheme(theme: Theme, persist = false) {
   document.documentElement.dataset.theme = theme;
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", theme === "dark" ? "#000000" : "#f7f4ed");
+    ?.setAttribute("content", theme === "dark" ? "#111315" : "#f3f1f8");
   if (persist) {
     try {
       window.localStorage.setItem("nivora-theme", theme);
@@ -64,7 +61,7 @@ function getSnapshot() {
 }
 
 function getServerSnapshot(): Theme {
-  return "light";
+  return "dark";
 }
 
 export function ThemeToggle() {

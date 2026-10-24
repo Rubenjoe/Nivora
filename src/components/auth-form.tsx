@@ -8,9 +8,18 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 type AuthMode = "login" | "register";
 
-export function AuthForm({ mode }: { mode: AuthMode }) {
+export function AuthForm({
+  mode,
+  initialError = null,
+  returnTo = "/",
+}: {
+  mode: AuthMode;
+  initialError?: string | null;
+  returnTo?: string;
+}) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const register = mode === "register";
 
@@ -18,6 +27,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     event.preventDefault();
     setBusy(true);
     setError(null);
+    setNotice(null);
     const form = new FormData(event.currentTarget);
     const payload = Object.fromEntries(form.entries());
     try {
@@ -34,7 +44,13 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         throw new Error(
           result.error ?? "Something went wrong. Please try again.",
         );
-      router.replace("/");
+      if (register && result.confirmationRequired) {
+        setNotice(
+          "Check your email to confirm your account before signing in.",
+        );
+        return;
+      }
+      router.replace(returnTo);
       router.refresh();
     } catch (cause) {
       setError(
@@ -107,6 +123,11 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               {error}
             </p>
           )}
+          {notice && (
+            <p className="auth-success" role="status">
+              {notice}
+            </p>
+          )}
           <button className="auth-submit" disabled={busy} type="submit">
             {busy && <LoaderCircle size={16} className="spin" />}
             {busy ? "Please wait…" : register ? "Create account" : "Sign in"}
@@ -119,7 +140,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           </Link>
         </p>
         <p className="auth-privacy">
-          Your password is sent securely to Appwrite and is never stored by
+          Your password is sent securely to Supabase Auth and is never stored by
           Nivora.
         </p>
       </div>

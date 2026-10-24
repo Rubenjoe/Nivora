@@ -10,23 +10,20 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "tsx scripts/db-migrate-preflight.ts && drizzle-kit migrate",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" *.mjs *.ts",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" *.mjs *.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "0.12.7",
     "@tailwindcss/postcss": "^4.1.18",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
     "decimal.js": "^10.6.0",
     "drizzle-orm": "^0.45.4",
     "lucide-react": "^0.468.0",
     "next": "^16.4.2",
-    "node-appwrite": "^30.0.1",
     "pg": "^8.23.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "tailwind-merge": "^3.4.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

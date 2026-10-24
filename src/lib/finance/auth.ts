@@ -1,32 +1,19 @@
-import { NextResponse } from "next/server";
-import { createSessionAccount } from "@/lib/appwrite/server";
+import { createClient } from "@/lib/supabase/server";
 import { getDatabase } from "@/lib/db";
 import { resolveProfile } from "@/lib/db/ownership";
 
 export async function requireFinanceUser() {
-  const session = await createSessionAccount();
-  if (!session) return null;
-  let user;
-  try {
-    user = await session.account.get();
-  } catch {
-    return null;
-  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return null;
   const db = getDatabase();
-  const profile = await resolveProfile(db, { id: user.$id, name: user.name });
+  const user = data.user;
+  const profile = await resolveProfile(db, {
+    id: user.id,
+    name:
+      typeof user.user_metadata?.name === "string"
+        ? user.user_metadata.name
+        : "",
+  });
   return { db, profile, user };
-}
-
-export function unauthorized() {
-  return NextResponse.json(
-    { error: "Sign in to access your financial data." },
-    { status: 401 },
-  );
-}
-
-export function serviceUnavailable() {
-  return NextResponse.json(
-    { error: "Financial storage is not configured or available." },
-    { status: 503 },
-  );
 }

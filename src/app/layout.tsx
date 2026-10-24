@@ -4,6 +4,9 @@ import "./transactions.css";
 import "./theme.css";
 import "./dark-theme.css";
 import "./premium-palette.css";
+import "./features.css";
+import "./premium.css";
+import "./vitrea-ui.css";
 
 export const metadata: Metadata = {
   title: "Nivora — Clarity for every financial decision",
@@ -11,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f7f4ed",
+  themeColor: "#111315",
 };
 
 export default function RootLayout({
