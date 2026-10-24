@@ -18,6 +18,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   sessionInitials,
@@ -174,6 +175,7 @@ export function AppShell({
             className={`premium-nav-item${active ? " active" : ""}`}
             href={href}
             aria-current={active ? "page" : undefined}
+            title={label}
             onClick={() => setDrawerOpen(false)}
           >
             <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
@@ -219,7 +221,7 @@ export function AppShell({
           onClick={() => setDrawerOpen(false)}
         />
       )}
-      <header className="premium-app-header">
+      <header className="premium-app-header glass-surface">
         <div className="premium-header-brand">
           <button
             type="button"
@@ -233,7 +235,10 @@ export function AppShell({
           </button>
           <BrandLogo />
         </div>
-        <nav aria-label="Main navigation" className="premium-nav-desktop">
+        <nav
+          aria-label="Main navigation"
+          className="premium-nav-desktop glass-surface"
+        >
           {navigationLinks}
         </nav>
         <div className="premium-header-actions">
@@ -248,7 +253,7 @@ export function AppShell({
         aria-label="Mobile navigation"
         aria-hidden={!drawerOpen}
         inert={!drawerOpen}
-        className={`premium-sidebar ${drawerOpen ? "open" : ""}`}
+        className={`premium-sidebar glass-surface ${drawerOpen ? "open" : ""}`}
       >
         <div className="premium-sidebar-inner">
           <div className="premium-sidebar-top">
@@ -281,7 +286,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <nav className="quick-dock" aria-label="Quick actions">
+      <nav className="quick-dock glass-surface" aria-label="Quick actions">
         <Link
           href="/transactions"
           aria-label="Add or review transactions"

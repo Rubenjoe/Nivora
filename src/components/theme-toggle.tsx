@@ -23,7 +23,7 @@ if (typeof document !== "undefined") {
   document.documentElement.dataset.theme = currentTheme;
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", currentTheme === "dark" ? "#111315" : "#f3f1f8");
+    ?.setAttribute("content", currentTheme === "dark" ? "#0d0f13" : "#f3f1f8");
 }
 
 function applyTheme(theme: Theme, persist = false) {
@@ -31,7 +31,7 @@ function applyTheme(theme: Theme, persist = false) {
   document.documentElement.dataset.theme = theme;
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", theme === "dark" ? "#111315" : "#f3f1f8");
+    ?.setAttribute("content", theme === "dark" ? "#0d0f13" : "#f3f1f8");
   if (persist) {
     try {
       window.localStorage.setItem("nivora-theme", theme);

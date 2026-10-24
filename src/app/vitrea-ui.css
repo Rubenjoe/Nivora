@@ -2,13 +2,13 @@
 :root,
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-bg: #111216;
-  --color-card: rgb(36 39 45 / 78%);
-  --color-card-solid: #1e2126;
+  --color-bg: #0d0f13;
+  --color-card: rgb(25 28 34 / 92%);
+  --color-card-solid: #181b21;
   --color-text: #f3f2f7;
   --color-text-secondary: #a3a6b2;
-  --color-border: rgb(242 244 247 / 11%);
-  --color-surface-hover: rgb(255 255 255 / 8%);
+  --color-border: rgb(231 234 245 / 10%);
+  --color-surface-hover: rgb(233 235 246 / 6%);
   --color-primary: #a995ff;
   --color-deep-purple: #8b7be8;
   --color-violet: #c9bdff;
@@ -32,7 +32,23 @@
   --space-4: 16px;
   --space-6: 24px;
   --motion-fast: 160ms;
-  --glass-blur: 16px;
+  --glass-blur: 22px;
+}
+
+html,
+body {
+  background-color: #0d0f13;
+}
+
+:root[data-theme="dark"] body {
+  background-image:
+    radial-gradient(
+      ellipse at 50% -32%,
+      rgb(116 101 197 / 11%),
+      transparent 49%
+    ),
+    linear-gradient(180deg, #111318 0%, #0d0f13 47%, #0a0c10 100%);
+  background-attachment: fixed;
 }
 
 :root[data-theme="light"] {
@@ -225,6 +241,39 @@ textarea:focus-visible {
     inset 0 1px rgb(255 255 255 / 7%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(125%);
   backdrop-filter: blur(var(--glass-blur)) saturate(125%);
+}
+
+/* Reusable CSS-only glass layer for floating controls; this does not capture
+   page content or claim shader-based background refraction. */
+.glass-surface {
+  border: 1px solid rgb(230 233 244 / 12%);
+  background-color: rgb(18 20 25 / 92%);
+  background-image:
+    linear-gradient(145deg, rgb(255 255 255 / 6%), transparent 48%),
+    linear-gradient(180deg, rgb(255 255 255 / 2%), transparent 55%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 8%),
+    0 14px 40px rgb(0 0 0 / 40%),
+    0 1px 0 rgb(255 255 255 / 2%);
+}
+
+@supports (
+  (-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))
+) {
+  .glass-surface {
+    background-color: rgb(18 20 25 / 75%);
+    -webkit-backdrop-filter: blur(22px) saturate(135%);
+    backdrop-filter: blur(22px) saturate(135%);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-surface {
+    background-color: #15181e;
+    background-image: linear-gradient(145deg, #1b1e25, #15181e);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 :root[data-theme="light"] .premium-app-header {
@@ -2238,7 +2287,7 @@ button:disabled,
 }
 
 /* Responsive shell and feature grids. */
-@media (max-width: 1240px) {
+@media (max-width: 1400px) {
   .premium-app-header {
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 10px;
@@ -2664,5 +2713,83 @@ button:disabled,
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+/* Final dark-only floating control treatment. Financial content panels remain
+   opaque graphite; only navigation and quick actions use the glass layer. */
+:root[data-theme="dark"] .premium-app-header.glass-surface,
+:root[data-theme="dark"] .premium-sidebar.glass-surface,
+:root[data-theme="dark"] .quick-dock.glass-surface {
+  border: 1px solid rgb(227 230 242 / 12%);
+  background-color: rgb(15 17 22 / 78%);
+  background-image:
+    linear-gradient(150deg, rgb(255 255 255 / 7%), transparent 46%),
+    linear-gradient(180deg, rgb(255 255 255 / 2%), transparent 62%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 9%),
+    0 16px 42px rgb(0 0 0 / 44%),
+    0 0 0 1px rgb(0 0 0 / 16%);
+}
+
+:root[data-theme="dark"] .premium-app-header.glass-surface {
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+}
+
+:root[data-theme="dark"] .premium-nav-desktop.glass-surface {
+  border: 1px solid rgb(227 230 242 / 9%);
+  background-color: rgb(7 9 12 / 55%);
+  background-image: linear-gradient(
+    145deg,
+    rgb(255 255 255 / 4%),
+    transparent 65%
+  );
+  box-shadow: inset 0 1px rgb(255 255 255 / 5%);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+  backdrop-filter: blur(16px) saturate(125%);
+}
+
+:root[data-theme="dark"] .premium-nav-item {
+  transition:
+    color 170ms ease,
+    background-color 170ms ease,
+    border-color 170ms ease,
+    box-shadow 170ms ease;
+}
+
+:root[data-theme="dark"] .premium-nav-item.active {
+  border-color: rgb(169 149 255 / 22%);
+  color: #f5f2ff;
+  background: linear-gradient(
+    180deg,
+    rgb(169 149 255 / 19%),
+    rgb(126 108 208 / 9%)
+  );
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 11%),
+    inset 0 0 0 1px rgb(169 149 255 / 8%),
+    0 4px 14px rgb(0 0 0 / 28%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-theme="dark"] .premium-app-header.glass-surface,
+  :root[data-theme="dark"] .premium-nav-desktop.glass-surface,
+  :root[data-theme="dark"] .premium-sidebar.glass-surface,
+  :root[data-theme="dark"] .quick-dock.glass-surface {
+    background-color: #15181e;
+    background-image: linear-gradient(145deg, #1b1e25, #15181e);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@supports not (
+  (-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))
+) {
+  :root[data-theme="dark"] .premium-app-header.glass-surface,
+  :root[data-theme="dark"] .premium-nav-desktop.glass-surface,
+  :root[data-theme="dark"] .premium-sidebar.glass-surface,
+  :root[data-theme="dark"] .quick-dock.glass-surface {
+    background-color: #15181e;
   }
 }
