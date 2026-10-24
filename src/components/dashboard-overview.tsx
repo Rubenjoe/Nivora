@@ -11,7 +11,10 @@ import {
   PieChart,
 } from "lucide-react";
 import { CashFlowChart } from "@/components/cash-flow-chart";
+import { DashboardGreeting } from "@/components/dashboard-greeting";
 import { DonutChart } from "@/components/donut-chart";
+import { formatMoney } from "@/lib/finance/money-format";
+import { assignCategoryColors } from "@/lib/finance/category-colors";
 
 type DashboardData = {
   currency: string;
@@ -128,7 +131,17 @@ async function readDashboard(
   } as DashboardData;
 }
 
-export function DashboardOverview({ mode }: { mode: "simple" | "pro" }) {
+export function DashboardOverview({
+  mode,
+  displayName,
+  timezone,
+  initialGreeting,
+}: {
+  mode: "simple" | "pro";
+  displayName: string | null;
+  timezone: string | null;
+  initialGreeting: string;
+}) {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [period, setPeriod] = useState<"this-month" | "last-month">(
@@ -162,11 +175,9 @@ export function DashboardOverview({ mode }: { mode: "simple" | "pro" }) {
     };
   }, [period, mode]);
 
-  const formatMoney = (amount: string, currency: string) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency,
-    }).format(Number(amount));
+  const categoryColors = assignCategoryColors(
+    (dashboard?.categories ?? []).map((category) => category.name),
+  );
 
   const totalCategorySpend = (dashboard?.categories ?? []).reduce(
     (sum, category) => sum.plus(category.amount),
@@ -181,15 +192,12 @@ export function DashboardOverview({ mode }: { mode: "simple" | "pro" }) {
   return (
     <>
       <div className="premium-header">
-        <div>
-          <p className="eyebrow">YOUR FINANCIAL HOME</p>
-          <h1>Overview</h1>
-          <p className="subheading">
-            {mode === "simple"
-              ? "A clear view of your income, spending, and recent activity."
-              : "Detailed cash flow, comparisons, and budget signals."}
-          </p>
-        </div>
+        <DashboardGreeting
+          displayName={displayName}
+          timezone={timezone}
+          initialGreeting={initialGreeting}
+          period={period}
+        />
         <div className="dashboard-head-actions">
           <div className="period-select-wrap">
             <label className="premium-label" style={{ marginBottom: 0 }}>
@@ -242,10 +250,10 @@ export function DashboardOverview({ mode }: { mode: "simple" | "pro" }) {
         ].map(({ label, value, icon: Icon, tone, delta }) => {
           const accent =
             tone === "primary"
-              ? "premium-summary-accent-purple"
+              ? "premium-summary-accent-net"
               : tone === "success"
-                ? "premium-summary-accent-coral"
-                : "premium-summary-accent-blue";
+                ? "premium-summary-accent-income"
+                : "premium-summary-accent-expense";
           const iconFill =
             tone === "primary"
               ? "var(--color-primary)"
@@ -350,7 +358,18 @@ export function DashboardOverview({ mode }: { mode: "simple" | "pro" }) {
                   return (
                     <li className="premium-category-item" key={category.name}>
                       <div className="premium-category-line">
-                        <span>{category.name}</span>
+                        <span className="premium-category-label">
+                          <i
+                            className="premium-category-dot"
+                            style={{
+                              background:
+                                categoryColors[category.name] ??
+                                "var(--chart-cat-1)",
+                            }}
+                            aria-hidden="true"
+                          />
+                          {category.name}
+                        </span>
                         <strong>
                           {formatMoney(category.amount, currency)}
                         </strong>
@@ -496,8 +515,10 @@ export function DashboardOverview({ mode }: { mode: "simple" | "pro" }) {
                   </small>
                 </span>
                 <strong className={`premium-recent-amount ${transaction.kind}`}>
-                  {transaction.kind === "expense" ? "−" : "+"}
-                  {formatMoney(transaction.amount, transaction.currency)}
+                  {formatMoney(transaction.amount, transaction.currency, {
+                    sign:
+                      transaction.kind === "expense" ? "negative" : "positive",
+                  })}
                 </strong>
               </li>
             ))}

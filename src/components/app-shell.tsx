@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import {
   BarChart3,
   CircleHelp,
@@ -162,6 +162,12 @@ export function AppShell({
     if (response.ok) await refresh();
   }
 
+  const dockActiveIndex = pathname.startsWith("/transactions")
+    ? 0
+    : pathname.startsWith("/settings")
+      ? 2
+      : -1;
+
   const navigationLinks = (
     <>
       {navItems.map(({ href, label, icon: Icon }) => {
@@ -286,11 +292,26 @@ export function AppShell({
         </div>
       </aside>
 
-      <nav className="quick-dock glass-surface" aria-label="Quick actions">
+      <nav
+        className="quick-dock glass-surface"
+        aria-label="Quick actions"
+        data-active={dockActiveIndex}
+        style={
+          {
+            "--dock-index": dockActiveIndex < 0 ? 0 : dockActiveIndex,
+          } as CSSProperties
+        }
+      >
+        <span
+          className={`quick-dock-indicator${dockActiveIndex < 0 ? " hidden" : ""}`}
+          aria-hidden="true"
+        />
         <Link
           href="/transactions"
           aria-label="Add or review transactions"
           title="Add transaction"
+          className={dockActiveIndex === 0 ? "is-active" : undefined}
+          aria-current={dockActiveIndex === 0 ? "page" : undefined}
         >
           <Wallet size={18} aria-hidden="true" />
         </Link>
@@ -301,7 +322,13 @@ export function AppShell({
         >
           <Download size={17} aria-hidden="true" />
         </Link>
-        <Link href="/settings" aria-label="Open settings" title="Settings">
+        <Link
+          href="/settings"
+          aria-label="Open settings"
+          title="Settings"
+          className={dockActiveIndex === 2 ? "is-active" : undefined}
+          aria-current={dockActiveIndex === 2 ? "page" : undefined}
+        >
           <Settings2 size={17} aria-hidden="true" />
         </Link>
       </nav>

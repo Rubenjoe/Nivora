@@ -1,6 +1,8 @@
 "use client";
 
 import Decimal from "decimal.js";
+import { assignCategoryColors } from "@/lib/finance/category-colors";
+import { formatMoney } from "@/lib/finance/money-format";
 
 interface DonutChartProps {
   categories: { name: string; amount: string }[];
@@ -9,96 +11,74 @@ interface DonutChartProps {
 }
 
 export function DonutChart({ categories, total, currency }: DonutChartProps) {
-  const colors = [
-    "#a995ff",
-    "#87b7ff",
-    "#70d6b2",
-    "#f4c878",
-    "#ff897f",
-    "#b7bcc9",
-  ];
-
-  const colorForCategory = (name: string) => {
-    let hash = 0;
-    for (const character of name.toLowerCase()) {
-      hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
-    }
-    return colors[hash % colors.length];
-  };
-
   const totalDec = new Decimal(total);
-  const valueFormatter = new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency,
-  });
   const sortedCategories = [...categories].sort((a, b) =>
-    new Decimal(b.amount).comparedTo(a.amount),
+    new Decimal(b.amount).comparedTo(new Decimal(a.amount)),
   );
+  const colors = assignCategoryColors(categories.map((item) => item.name));
 
-  const segments = sortedCategories.map((cat) => {
-    const percentage = totalDec.isZero()
-      ? 0
-      : new Decimal(cat.amount).div(totalDec).mul(100).toNumber();
-    return { ...cat, percentage, color: colorForCategory(cat.name) };
-  });
-
-  const radius = 72;
+  const radius = 70;
+  const strokeWidth = 16;
+  const gap = 1.6;
   const circumference = 2 * Math.PI * radius;
 
-  type SegmentWithOffset = (typeof segments)[number] & {
-    strokeDasharray: string;
-    strokeDashoffset: number;
-  };
+  const segments = sortedCategories.map((category) => {
+    const percentage = totalDec.isZero()
+      ? 0
+      : new Decimal(category.amount).div(totalDec).mul(100).toNumber();
+    const dash = Math.max(0, (percentage / 100) * circumference - gap);
+    return {
+      ...category,
+      percentage,
+      dash,
+      color: colors[category.name] ?? "var(--chart-cat-1)",
+    };
+  });
+
   const segmentsWithOffsets = segments.reduce<{
-    cumulativePercentage: number;
-    segments: SegmentWithOffset[];
+    offset: number;
+    rows: ((typeof segments)[number] & { strokeDashoffset: number })[];
   }>(
-    (result, segment) => {
-      result.segments.push({
+    (accumulator, segment) => {
+      accumulator.rows.push({
         ...segment,
-        strokeDasharray: `${(segment.percentage / 100) * circumference} ${circumference}`,
-        strokeDashoffset:
-          (result.cumulativePercentage * circumference * -1) / 100,
+        strokeDashoffset: -accumulator.offset,
       });
-      result.cumulativePercentage += segment.percentage;
-      return result;
+      accumulator.offset += (segment.percentage / 100) * circumference;
+      return accumulator;
     },
-    { cumulativePercentage: 0, segments: [] },
-  ).segments;
+    { offset: 0, rows: [] },
+  ).rows;
+
+  const summary = sortedCategories
+    .map(
+      (category) =>
+        `${category.name} ${formatMoney(category.amount, currency)} (${new Decimal(
+          category.amount,
+        )
+          .div(totalDec.isZero() ? 1 : totalDec)
+          .mul(100)
+          .toFixed(1)}%)`,
+    )
+    .join(", ");
 
   return (
     <div
       className="premium-donut-chart"
       role="img"
-      aria-label="Expense category breakdown"
+      aria-label={`Expense category breakdown. ${summary}`}
     >
       <svg width={180} height={180} viewBox="0 0 180 180">
-        <defs>
-          <linearGradient
-            id="donutGradient"
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="100%"
-          >
-            <stop offset="0%" stopColor="var(--color-primary)" />
-            <stop offset="100%" stopColor="var(--color-violet)" />
-          </linearGradient>
-        </defs>
-        {/* Background track */}
         <circle
           cx="90"
           cy="90"
           r={radius}
           fill="none"
-          stroke="rgb(242 244 247 / 8%)"
-          strokeWidth={14}
+          stroke="var(--color-border-soft)"
+          strokeWidth={strokeWidth}
         />
-        {/* Segments */}
-        {segmentsWithOffsets.map((segment, index) => {
-          if (segment.percentage === 0) return null;
-          const { strokeDasharray, strokeDashoffset } = segment;
-
+        {segmentsWithOffsets.map((segment) => {
+          if (segment.percentage <= 0) return null;
           return (
             <circle
               key={segment.name}
@@ -107,25 +87,23 @@ export function DonutChart({ categories, total, currency }: DonutChartProps) {
               r={radius}
               fill="none"
               stroke={segment.color}
-              strokeWidth={14}
-              strokeDasharray={strokeDasharray}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
+              strokeWidth={strokeWidth}
+              strokeDasharray={`${segment.dash} ${circumference - segment.dash}`}
+              strokeDashoffset={segment.strokeDashoffset}
+              strokeLinecap="butt"
               transform="rotate(-90 90 90)"
-              style={{
-                animation: `donutDraw 800ms cubic-bezier(0.4, 0, 0.2, 1) ${index * 80}ms both`,
-              }}
+              className="premium-donut-segment"
             >
-              <title>{`${segment.name}: ${valueFormatter.format(Number(segment.amount))} (${segment.percentage.toFixed(1)}%)`}</title>
+              <title>{`${segment.name}: ${formatMoney(segment.amount, currency)} (${segment.percentage.toFixed(1)}%)`}</title>
             </circle>
           );
         })}
       </svg>
       <div className="premium-donut-center">
         <span className="premium-donut-total">
-          {valueFormatter.format(Number(total))}
+          {formatMoney(total, currency)}
         </span>
-        <span className="premium-donut-label">Total Expenses</span>
+        <span className="premium-donut-label">Total expenses</span>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { formatMoney as formatCurrency } from "@/lib/finance/money-format";
 
 type Goal = {
   goal: {
@@ -149,14 +150,7 @@ export function GoalsWorkspace() {
     };
   }, [contributionGoalId, goals]);
 
-  const formatMoney = useMemo(
-    () => (amount: string) =>
-      new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency,
-      }).format(Number(amount)),
-    [currency],
-  );
+  const formatAmount = (amount: string) => formatCurrency(amount, currency);
 
   const visible = showArchived
     ? goals
@@ -531,8 +525,8 @@ export function GoalsWorkspace() {
                     </div>
                     <div className="budget-item-body">
                       <span>
-                        {formatMoney(item.saved)} saved of{" "}
-                        {formatMoney(item.goal.targetAmount)}
+                        {formatAmount(item.saved)} saved of{" "}
+                        {formatAmount(item.goal.targetAmount)}
                       </span>
                       <span
                         className={`budget-percent ${item.complete ? "ok" : ""}`}
@@ -639,7 +633,7 @@ export function GoalsWorkspace() {
                                     : ""}
                                 </span>
                                 <strong>
-                                  {formatMoney(contribution.amount)}
+                                  {formatAmount(contribution.amount)}
                                 </strong>
                               </li>
                             ))}

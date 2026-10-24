@@ -392,15 +392,15 @@ a:focus-visible {
   place-items: center;
   border-radius: 8px;
 }
-.income {
+.summary-icon.income {
   color: #228576;
   background: #e9f5f1;
 }
-.expense {
+.summary-icon.expense {
   color: #b78653;
   background: #faf2e9;
 }
-.cash {
+.summary-icon.cash {
   color: #637fa4;
   background: #eef2f8;
 }

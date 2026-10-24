@@ -10,6 +10,8 @@ import {
 } from "react";
 import { BarChart3, Download, TrendingDown, TrendingUp } from "lucide-react";
 import { CashFlowChart } from "@/components/cash-flow-chart";
+import { formatMoney } from "@/lib/finance/money-format";
+import { assignCategoryColors } from "@/lib/finance/category-colors";
 
 type AnalyticsData = {
   period: { from: string; to: string; grain: string };
@@ -114,14 +116,8 @@ export function AnalyticsWorkspace() {
     };
   }, [load]);
 
-  const formatMoney = useMemo(
-    () => (amount: string, currency: string) =>
-      new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency,
-      }).format(Number(amount)),
-    [],
-  );
+  const formatAmount = (amount: string, currency: string) =>
+    formatMoney(amount, currency);
 
   async function exportCsv() {
     setExporting(true);
@@ -148,6 +144,10 @@ export function AnalyticsWorkspace() {
       setExporting(false);
     }
   }
+
+  const categoryColors = assignCategoryColors(
+    (data?.categories ?? []).map((category) => category.name),
+  );
 
   const totalCategorySpend = (data?.categories ?? []).reduce(
     (sum, category) => sum.plus(category.amount),
@@ -247,7 +247,7 @@ export function AnalyticsWorkspace() {
                   </span>
                 </div>
                 <p className="summary-value">
-                  {formatMoney(value, data.currency)}
+                  {formatAmount(value, data.currency)}
                 </p>
                 <p className="summary-note">
                   {delta
@@ -298,9 +298,20 @@ export function AnalyticsWorkspace() {
                     return (
                       <li className="category-item" key={category.name}>
                         <div className="category-line">
-                          <span>{category.name}</span>
+                          <span className="premium-category-label">
+                            <i
+                              className="premium-category-dot"
+                              style={{
+                                background:
+                                  categoryColors[category.name] ??
+                                  "var(--chart-cat-1)",
+                              }}
+                              aria-hidden="true"
+                            />
+                            {category.name}
+                          </span>
                           <strong>
-                            {formatMoney(category.amount, data.currency)}
+                            {formatAmount(category.amount, data.currency)}
                           </strong>
                         </div>
                         <div className="category-meta">
@@ -309,7 +320,12 @@ export function AnalyticsWorkspace() {
                         <div className="category-track" aria-hidden="true">
                           <span
                             className="category-bar-fill"
-                            style={{ width: `${proportion}%` }}
+                            style={{
+                              width: `${proportion}%`,
+                              background:
+                                categoryColors[category.name] ??
+                                "var(--chart-cat-1)",
+                            }}
                           />
                         </div>
                       </li>
@@ -339,8 +355,8 @@ export function AnalyticsWorkspace() {
                     <div>
                       <strong>{budget.name}</strong>
                       <span>
-                        {formatMoney(budget.spent, data.currency)} of{" "}
-                        {formatMoney(budget.amount, data.currency)}
+                        {formatAmount(budget.spent, data.currency)} of{" "}
+                        {formatAmount(budget.amount, data.currency)}
                       </span>
                     </div>
                     <div

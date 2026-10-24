@@ -17,6 +17,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
+import { formatMoney as formatCurrency } from "@/lib/finance/money-format";
 
 type ScheduleRow = {
   schedule: {
@@ -117,14 +118,7 @@ export function RecurringWorkspace() {
     };
   }, [load, applyLoaded]);
 
-  const formatMoney = useMemo(
-    () => (amount: string) =>
-      new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency,
-      }).format(Number(amount)),
-    [currency],
-  );
+  const formatAmount = (amount: string) => formatCurrency(amount, currency);
 
   const today = todayISO();
   const availableCategories = categories.filter(
@@ -439,7 +433,7 @@ export function RecurringWorkspace() {
                         <strong>{schedule.merchant ?? row.categoryName}</strong>
                         <span>
                           {row.categoryName} · {schedule.frequency} ·{" "}
-                          {formatMoney(schedule.amount)} ·{" "}
+                          {formatAmount(schedule.amount)} ·{" "}
                           {schedule.status === "active"
                             ? due
                               ? `Due ${schedule.nextDueDate} (overdue)`

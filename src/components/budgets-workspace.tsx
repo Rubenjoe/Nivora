@@ -16,6 +16,7 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
+import { formatMoney as formatCurrency } from "@/lib/finance/money-format";
 
 type Budget = {
   budget: {
@@ -132,14 +133,7 @@ export function BudgetsWorkspace() {
     };
   }, [load, applyLoaded]);
 
-  const formatMoney = useMemo(
-    () => (amount: string) =>
-      new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency,
-      }).format(Number(amount)),
-    [currency],
-  );
+  const formatAmount = (amount: string) => formatCurrency(amount, currency);
 
   const visible = showArchived
     ? budgets
@@ -472,8 +466,8 @@ export function BudgetsWorkspace() {
                     </div>
                     <div className="budget-item-body">
                       <span>
-                        {formatMoney(item.spent)} spent of{" "}
-                        {formatMoney(item.budget.amount)}
+                        {formatAmount(item.spent)} spent of{" "}
+                        {formatAmount(item.budget.amount)}
                       </span>
                       <span
                         className={`budget-percent ${
@@ -510,7 +504,7 @@ export function BudgetsWorkspace() {
                         <p className="budget-alert-note">
                           <AlertTriangle size={13} aria-hidden="true" />
                           {item.overBudget
-                            ? `Over budget by ${formatMoney(
+                            ? `Over budget by ${formatAmount(
                                 String(Math.abs(Number(item.remaining))),
                               )}`
                             : `Past ${item.budget.warningThresholdPercent}% of this budget`}

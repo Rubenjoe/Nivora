@@ -7,6 +7,7 @@ import "./premium-palette.css";
 import "./features.css";
 import "./premium.css";
 import "./vitrea-ui.css";
+import "./theme-system.css";
 
 export const metadata: Metadata = {
   title: "Nivora — Clarity for every financial decision",
@@ -14,14 +15,19 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d0f13",
+  themeColor: "#070709",
 };
+
+const themeBootstrap = `(function(){try{var t=localStorage.getItem("nivora-theme");if(t!=="light"&&t!=="dark"){t="dark";}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}catch(e){}})();`;
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
       <body>{children}</body>
     </html>
   );

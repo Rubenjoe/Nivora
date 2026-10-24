@@ -8,6 +8,7 @@ import {
   type FormEvent,
 } from "react";
 import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import { formatMoney } from "@/lib/finance/money-format";
 
 type Category = {
   id: string;
@@ -205,11 +206,6 @@ export function TransactionsWorkspace() {
   const availableCategories = categories.filter(
     (category) => category.kind === draft.kind,
   );
-  const formatMoney = (amount: string, code: string) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: code,
-    }).format(Number(amount));
 
   const filteredEntries = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -678,8 +674,12 @@ export function TransactionsWorkspace() {
                     <strong
                       className={`premium-transaction-amount ${transaction.kind}`}
                     >
-                      {transaction.kind === "expense" ? "−" : "+"}
-                      {formatMoney(transaction.amount, transaction.currency)}
+                      {formatMoney(transaction.amount, transaction.currency, {
+                        sign:
+                          transaction.kind === "expense"
+                            ? "negative"
+                            : "positive",
+                      })}
                     </strong>
                     <div className="premium-transaction-actions">
                       <button
