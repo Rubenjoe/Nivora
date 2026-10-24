@@ -12,9 +12,20 @@ export const transactionInput = z.object({
   description: z.string().trim().max(500).nullable().optional(),
 });
 
-export const transactionQuery = z.object({
-  from: z.iso.date().optional(),
-  to: z.iso.date().optional(),
-  kind: z.enum(["income", "expense"]).optional(),
-  categoryId: z.string().uuid().optional(),
-});
+export const transactionQuery = z
+  .object({
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
+    kind: z.enum(["income", "expense"]).optional(),
+    categoryId: z.string().uuid().optional(),
+  })
+  .refine((query) => !query.from || !query.to || query.from <= query.to, {
+    path: ["to"],
+    message: "The end date must be on or after the start date.",
+  });
+
+export const monthStartDate = z.iso
+  .date()
+  .refine((value) => value.endsWith("-01"), {
+    message: "Choose the first day of a valid month.",
+  });

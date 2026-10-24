@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -79,6 +80,7 @@ export function TransactionsWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   const load = useCallback(
     async (filters = "", page = 1, includeCategories = true) => {
@@ -103,7 +105,7 @@ export function TransactionsWorkspace() {
           throw new Error("Sign in to view and record your transactions.");
         }
         throw new Error(
-          categoryResult.error ??
+          categoryResult?.error ??
             transactionResult.error ??
             "Unable to load transactions.",
         );
@@ -252,6 +254,8 @@ export function TransactionsWorkspace() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -288,6 +292,7 @@ export function TransactionsWorkspace() {
           : "Could not save this transaction.",
       );
     } finally {
+      submittingRef.current = false;
       setBusy(false);
     }
   }

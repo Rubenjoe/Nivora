@@ -109,9 +109,24 @@ export function SettingsWorkspace({
   }
 
   async function signOut() {
-    await fetch("/api/v1/auth/logout", { method: "POST" });
-    router.replace("/sign-in");
-    router.refresh();
+    setError(null);
+    try {
+      const response = await fetch("/api/v1/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(
+          result.error ?? "Unable to sign out. Please try again.",
+        );
+      }
+      router.replace("/sign-in");
+      router.refresh();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to sign out. Please try again.",
+      );
+    }
   }
 
   return (

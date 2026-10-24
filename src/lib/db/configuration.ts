@@ -33,6 +33,13 @@ export function resolveCaCertificatePath(): string | undefined {
   );
 }
 
+export function resolveCaCertificate(): string | undefined {
+  const configuredCertificate = process.env.DATABASE_SSL_CA_CERT?.trim();
+  if (configuredCertificate) return configuredCertificate;
+  const certificatePath = resolveCaCertificatePath();
+  return certificatePath ? fs.readFileSync(certificatePath, "utf8") : undefined;
+}
+
 export function validateDatabaseConfiguration() {
   const runtimeUrl = process.env.DATABASE_URL?.trim();
   if (!runtimeUrl) {
@@ -77,7 +84,7 @@ export function validateDatabaseConfiguration() {
       );
     }
   }
-  resolveCaCertificatePath();
+  resolveCaCertificate();
 }
 
 export function userFacingStorageMessage(issue: DatabaseConfigurationIssue) {

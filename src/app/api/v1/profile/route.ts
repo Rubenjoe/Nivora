@@ -8,6 +8,10 @@ import {
   unauthorized,
 } from "@/lib/finance/api-errors";
 import { hasTrustedOrigin } from "@/lib/security/origin";
+import {
+  canChangeProfileCurrency,
+  profileHasFinancialRecords,
+} from "@/lib/finance/currency-change";
 
 const profilePatchSchema = z.object({
   displayName: z.string().trim().min(1).max(100).optional(),
@@ -44,6 +48,31 @@ export async function PATCH(request: Request) {
     );
     if (!parsed.success)
       return NextResponse.json({ error: "Invalid settings." }, { status: 400 });
+    if (
+      parsed.data.currency &&
+      parsed.data.currency !== current.profile.currency
+    ) {
+      const hasFinancialRecords = await profileHasFinancialRecords(
+        current.db,
+        current.profile.id,
+      );
+      if (
+        !canChangeProfileCurrency(
+          current.profile.currency,
+          parsed.data.currency,
+          hasFinancialRecords,
+        )
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Preferred currency cannot be changed while financial records exist. Nivora does not convert or re-denominate saved amounts.",
+            code: "currency_change_requires_empty_financial_data",
+          },
+          { status: 409 },
+        );
+      }
+    }
     const [updated] = await current.db
       .update(profiles)
       .set({ ...parsed.data, updatedAt: new Date() })

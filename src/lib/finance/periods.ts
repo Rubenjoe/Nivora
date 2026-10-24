@@ -28,24 +28,31 @@ export function addMonths(date: Date, count: number) {
 export function addRecurrenceDue(
   due: string,
   frequency: "weekly" | "monthly" | "yearly",
+  anchorDate: string = due,
 ) {
   const base = new Date(`${due}T12:00:00`);
   if (frequency === "weekly") {
     base.setDate(base.getDate() + 7);
     return toISODate(base);
   }
+  const anchor = new Date(`${anchorDate}T12:00:00`);
+  const anchorDay = anchor.getDate();
   if (frequency === "monthly") {
-    // Clamp to the end of the next month so Jan 31 -> Feb 28, not Mar 3.
-    const day = base.getDate();
     const next = new Date(base.getFullYear(), base.getMonth() + 1, 1, 12);
     const daysInNextMonth = new Date(
       next.getFullYear(),
       next.getMonth() + 1,
       0,
     ).getDate();
-    next.setDate(Math.min(day, daysInNextMonth));
+    next.setDate(Math.min(anchorDay, daysInNextMonth));
     return toISODate(next);
   }
-  base.setFullYear(base.getFullYear() + 1);
-  return toISODate(base);
+  const next = new Date(base.getFullYear() + 1, anchor.getMonth(), 1, 12);
+  const daysInNextMonth = new Date(
+    next.getFullYear(),
+    next.getMonth() + 1,
+    0,
+  ).getDate();
+  next.setDate(Math.min(anchorDay, daysInNextMonth));
+  return toISODate(next);
 }

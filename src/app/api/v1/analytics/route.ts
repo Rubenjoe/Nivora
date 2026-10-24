@@ -14,36 +14,19 @@ import {
   unauthorized,
 } from "@/lib/finance/api-errors";
 import { transactionQuery } from "@/lib/finance/validation";
+import { formatPercentageDelta } from "@/lib/finance/comparison";
+import {
+  calendarDayCount,
+  previousCalendarRange,
+  weekStartISO,
+} from "@/lib/finance/calendar";
 
 const MAX_RANGE_DAYS = 400;
-
-function periodBounds(from: string, to: string) {
-  const start = new Date(`${from}T12:00:00`);
-  const end = new Date(`${to}T12:00:00`);
-  return { start, end };
-}
-
-function previousBounds(from: string, to: string) {
-  const start = new Date(`${from}T12:00:00`);
-  const end = new Date(`${to}T12:00:00`);
-  const days = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
-  const prevEnd = new Date(start);
-  prevEnd.setDate(prevEnd.getDate() - 1);
-  const prevStart = new Date(prevEnd);
-  prevStart.setDate(prevEnd.getDate() - (days - 1));
-  return {
-    from: prevStart.toISOString().slice(0, 10),
-    to: prevEnd.toISOString().slice(0, 10),
-  };
-}
 
 function bucketKey(occurredOn: string, grain: "daily" | "weekly" | "monthly") {
   if (grain === "daily") return occurredOn;
   if (grain === "monthly") return occurredOn.slice(0, 7);
-  const date = new Date(`${occurredOn}T12:00:00`);
-  const day = (date.getDay() + 6) % 7;
-  date.setDate(date.getDate() - day);
-  return date.toISOString().slice(0, 10);
+  return weekStartISO(occurredOn);
 }
 
 export async function GET(request: Request) {
@@ -65,11 +48,7 @@ export async function GET(request: Request) {
       );
     }
     const { from, to } = query.data;
-    const rangeDays = Math.round(
-      (new Date(`${to}T12:00:00`).getTime() -
-        new Date(`${from}T12:00:00`).getTime()) /
-        86_400_000,
-    );
+    const rangeDays = calendarDayCount(from, to);
     if (rangeDays > MAX_RANGE_DAYS) {
       return NextResponse.json(
         { error: "Date ranges longer than 400 days are not supported." },
@@ -77,8 +56,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const prev = previousBounds(from, to);
-    const { start, end } = periodBounds(from, to);
+    const prev = previousCalendarRange(from, to);
 
     const scoped = [
       eq(transactions.profileId, current.profile.id),
@@ -98,7 +76,13 @@ export async function GET(request: Request) {
           categoryName: categories.name,
         })
         .from(transactions)
-        .innerJoin(categories, eq(transactions.categoryId, categories.id))
+        .innerJoin(
+          categories,
+          and(
+            eq(transactions.categoryId, categories.id),
+            eq(categories.profileId, current.profile.id),
+          ),
+        )
         .where(
           and(
             ...scoped,
@@ -186,12 +170,6 @@ export async function GET(request: Request) {
         prevTotals.income = prevTotals.income.plus(amount);
       else prevTotals.expenses = prevTotals.expenses.plus(amount);
     }
-
-    const formatDelta = (current: Decimal, prior: Decimal) => {
-      if (prior.isZero()) return current.isZero() ? null : "new";
-      const pct = current.minus(prior).abs().div(prior).mul(100).toFixed(1);
-      return `${pct}%`;
-    };
 
     const periodMonth = `${to.slice(0, 7)}-01`;
     const [budgetRows, budgetSpendRows] = await Promise.all([
@@ -309,11 +287,17 @@ export async function GET(request: Request) {
         net: totals.income.minus(totals.expenses).toFixed(2),
       },
       comparison: {
-        incomeDelta: formatDelta(totals.income, prevTotals.income),
-        expenseDelta: formatDelta(totals.expenses, prevTotals.expenses),
-        netDelta: formatDelta(
-          totals.income.minus(totals.expenses),
-          prevTotals.income.minus(prevTotals.expenses),
+        incomeDelta: formatPercentageDelta(
+          totals.income.toFixed(2),
+          prevTotals.income.toFixed(2),
+        ),
+        expenseDelta: formatPercentageDelta(
+          totals.expenses.toFixed(2),
+          prevTotals.expenses.toFixed(2),
+        ),
+        netDelta: formatPercentageDelta(
+          totals.income.minus(totals.expenses).toFixed(2),
+          prevTotals.income.minus(prevTotals.expenses).toFixed(2),
         ),
       },
       categories: categoryBreakdown,

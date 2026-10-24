@@ -6,6 +6,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "./schema";
 import { defaultCategories, resolveProfile } from "./ownership";
+import { profileHasFinancialRecords } from "../finance/currency-change";
 import type { getDatabase } from "./index";
 
 /**
@@ -49,6 +50,57 @@ async function seedAuthUser(
     sql`insert into auth.users (id) values (${supabaseUserId}) on conflict do nothing`,
   );
 }
+
+test("currency-change guard sees only financial rows owned by the requested profile", async () => {
+  const { client, db } = await buildDatabase();
+  try {
+    const userA = "11111111-1111-4111-8111-111111111111";
+    const userB = "22222222-2222-4222-8222-222222222222";
+    await seedAuthUser(db, userA);
+    await seedAuthUser(db, userB);
+    const [profileA, profileB] = await db
+      .insert(schema.profiles)
+      .values([
+        { supabaseUserId: userA, displayName: "A" },
+        { supabaseUserId: userB, displayName: "B" },
+      ])
+      .returning();
+
+    const serverDb = db as unknown as ReturnType<typeof getDatabase>;
+    assert.equal(
+      await profileHasFinancialRecords(serverDb, profileA!.id),
+      false,
+    );
+    assert.equal(
+      await profileHasFinancialRecords(serverDb, profileB!.id),
+      false,
+    );
+
+    const [categoryB] = await db
+      .insert(schema.categories)
+      .values({ profileId: profileB!.id, name: "Food", kind: "expense" })
+      .returning();
+    await db.insert(schema.transactions).values({
+      profileId: profileB!.id,
+      categoryId: categoryB!.id,
+      kind: "expense",
+      amount: "40.00",
+      currency: "INR",
+      occurredOn: "2026-10-24",
+    });
+
+    assert.equal(
+      await profileHasFinancialRecords(serverDb, profileA!.id),
+      false,
+    );
+    assert.equal(
+      await profileHasFinancialRecords(serverDb, profileB!.id),
+      true,
+    );
+  } finally {
+    await client.close();
+  }
+});
 
 test("profile resolution seeds categories in one idempotent batch without resetting the name", async () => {
   const { client, db } = await buildDatabase();
@@ -105,14 +157,17 @@ test("user B's queries never see user A's transactions (route query shape)", asy
       .insert(schema.categories)
       .values({ profileId: a.id, name: "Food", kind: "expense" })
       .returning();
-    await db.insert(schema.transactions).values({
-      profileId: a.id,
-      categoryId: categoryA.id,
-      kind: "expense",
-      amount: "150.00",
-      currency: "INR",
-      occurredOn: "2026-10-21",
-    });
+    const [transactionA] = await db
+      .insert(schema.transactions)
+      .values({
+        profileId: a.id,
+        categoryId: categoryA.id,
+        kind: "expense",
+        amount: "150.00",
+        currency: "INR",
+        occurredOn: "2026-10-21",
+      })
+      .returning();
 
     // The exact filter shape used by GET /api/v1/transactions
     const visibleToB = await db
@@ -120,11 +175,25 @@ test("user B's queries never see user A's transactions (route query shape)", asy
       .from(schema.transactions)
       .where(
         and(
+          eq(schema.transactions.id, transactionA!.id),
           eq(schema.transactions.profileId, b.id),
           eq(schema.transactions.currency, "INR"),
         ),
       );
     assert.equal(visibleToB.length, 0);
+
+    // The exact GET /api/v1/transactions/[id] ID + profile scope.
+    const rowByIdForB = await db
+      .select()
+      .from(schema.transactions)
+      .where(
+        and(
+          eq(schema.transactions.id, transactionA!.id),
+          eq(schema.transactions.profileId, b.id),
+        ),
+      )
+      .limit(1);
+    assert.equal(rowByIdForB.length, 0);
 
     // The exact update shape used by PATCH — scoped to B's profile
     const updated = await db
@@ -132,6 +201,7 @@ test("user B's queries never see user A's transactions (route query shape)", asy
       .set({ amount: "999.00", updatedAt: new Date() })
       .where(
         and(
+          eq(schema.transactions.id, transactionA!.id),
           eq(schema.transactions.profileId, b.id),
           eq(schema.transactions.currency, "INR"),
         ),
@@ -144,6 +214,7 @@ test("user B's queries never see user A's transactions (route query shape)", asy
       .delete(schema.transactions)
       .where(
         and(
+          eq(schema.transactions.id, transactionA!.id),
           eq(schema.transactions.profileId, b.id),
           eq(schema.transactions.currency, "INR"),
         ),

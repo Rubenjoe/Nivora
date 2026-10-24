@@ -8,7 +8,7 @@ export function nextDueOnOrAfter(
   let due = startDate;
   let guard = 0;
   while (due < todayISO && guard < 500) {
-    due = addRecurrenceDue(due, frequency);
+    due = addRecurrenceDue(due, frequency, startDate);
     guard += 1;
   }
   return due;

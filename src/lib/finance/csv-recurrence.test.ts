@@ -35,7 +35,11 @@ test("recurrence advances weekly, monthly, and yearly with month-end clamping", 
   assert.equal(addRecurrenceDue("2026-01-31", "monthly"), "2026-02-28");
   assert.equal(addRecurrenceDue("2026-03-31", "monthly"), "2026-04-30");
   assert.equal(addRecurrenceDue("2026-10-21", "yearly"), "2027-10-21");
-  assert.equal(addRecurrenceDue("2024-02-29", "yearly"), "2025-03-01");
+  assert.equal(addRecurrenceDue("2024-02-29", "yearly"), "2025-02-28");
+  assert.equal(
+    addRecurrenceDue("2026-02-28", "monthly", "2026-01-31"),
+    "2026-03-31",
+  );
 });
 
 test("next due date lands on or after today without overshooting", () => {
@@ -50,6 +54,13 @@ test("next due date lands on or after today without overshooting", () => {
   assert.equal(
     nextDueOnOrAfter("2026-10-25", "monthly", "2026-10-21"),
     "2026-10-25",
+  );
+});
+
+test("monthly due dates retain their original day after month-end clamping", () => {
+  assert.equal(
+    nextDueOnOrAfter("2026-01-31", "monthly", "2026-03-15"),
+    "2026-03-31",
   );
 });
 

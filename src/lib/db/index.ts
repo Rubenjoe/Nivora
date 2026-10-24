@@ -1,9 +1,8 @@
 import "server-only";
-import fs from "node:fs";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import {
-  resolveCaCertificatePath,
+  resolveCaCertificate,
   validateDatabaseConfiguration,
 } from "@/lib/db/configuration";
 import * as schema from "./schema";
@@ -14,13 +13,11 @@ export function getDatabase() {
   validateDatabaseConfiguration();
   const runtimeUrl = process.env.DATABASE_URL!.trim();
   if (!pool) {
+    const caCertificate = resolveCaCertificate();
     const sslConfig: { ca?: string; rejectUnauthorized: boolean } = {
+      ...(caCertificate ? { ca: caCertificate } : {}),
       rejectUnauthorized: true,
     };
-    const resolvedCaPath = resolveCaCertificatePath();
-    if (resolvedCaPath) {
-      sslConfig.ca = fs.readFileSync(resolvedCaPath, "utf8");
-    }
     pool = new Pool({
       connectionString: runtimeUrl,
       max: 5,

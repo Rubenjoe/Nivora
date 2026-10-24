@@ -11,6 +11,7 @@ import {
 import { hasTrustedOrigin } from "@/lib/security/origin";
 import { expenseTotalForBudget } from "@/lib/finance/budget-spent";
 import type { getDatabase } from "@/lib/db";
+import { monthStartDate } from "@/lib/finance/validation";
 
 type Database = ReturnType<typeof getDatabase>;
 type BudgetRow = typeof budgets.$inferSelect;
@@ -21,7 +22,7 @@ const budgetInput = z.object({
     .string()
     .regex(/^(?:0|[1-9]\d{0,14})(?:\.\d{1,4})?$/)
     .refine((value) => Number(value) > 0, "Amount must be greater than zero."),
-  periodMonth: z.string().regex(/^\d{4}-\d{2}-01$/),
+  periodMonth: monthStartDate,
   categoryId: z.string().uuid().nullable().optional(),
   warningThresholdPercent: z.coerce.number().int().min(1).max(100).optional(),
 });

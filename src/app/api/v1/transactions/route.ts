@@ -48,7 +48,13 @@ export async function GET(request: Request) {
         categoryIcon: categories.icon,
       })
       .from(transactions)
-      .innerJoin(categories, eq(transactions.categoryId, categories.id))
+      .innerJoin(
+        categories,
+        and(
+          eq(transactions.categoryId, categories.id),
+          eq(categories.profileId, current.profile.id),
+        ),
+      )
       .where(and(...filters))
       .orderBy(desc(transactions.occurredOn), desc(transactions.createdAt))
       .limit(PAGE_SIZE + 1)

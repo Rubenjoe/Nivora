@@ -193,11 +193,17 @@ export async function POST(request: Request, context: Context) {
       const nextDue = addRecurrenceDue(
         schedule.nextDueDate,
         schedule.frequency,
+        schedule.startDate,
       );
       await tx
         .update(recurringSchedules)
         .set({ nextDueDate: nextDue, updatedAt: new Date() })
-        .where(eq(recurringSchedules.id, schedule.id));
+        .where(
+          and(
+            eq(recurringSchedules.id, schedule.id),
+            eq(recurringSchedules.profileId, current.profile.id),
+          ),
+        );
       return { duplicate: false as const, transaction };
     });
     if (result.duplicate) {
