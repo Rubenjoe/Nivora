@@ -2,6 +2,8 @@ import { AppShell } from "@/components/app-shell";
 import { getNavSession } from "@/lib/auth/server-session";
 import type { ClientNavSession } from "@/components/use-nav-session";
 
+export const dynamic = "force-dynamic";
+
 function toClientSession(
   session: Awaited<ReturnType<typeof getNavSession>>,
 ): ClientNavSession {

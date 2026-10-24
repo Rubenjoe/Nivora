@@ -14,6 +14,20 @@ Supabase Auth and Supabase PostgreSQL are integrated in local code. Migrations `
 6. `DATABASE_URL` is the runtime PostgreSQL connection; choose the Supabase connection mode appropriate for the deployment. `DIRECT_URL` is the direct/DDL-capable migration connection. Require TLS as directed by the Supabase connection details. Do not guess hosts, ports, usernames, or credentials.
 7. TLS: download the Supabase root CA certificate from the Supabase dashboard — Project settings → Database → connection details → download CA certificate (root cert). Save it outside the repository (e.g. `certs/` next to the project, which is gitignored), set `DATABASE_SSL_CA_PATH` to its path in `.env.local`, and never commit the certificate or its path value with credentials. The runtime database client verifies the server certificate (`rejectUnauthorized` is always `true`); `DATABASE_SSL_CA_PATH` is optional and defaults to the system trust store when unset.
 
+## Vercel deployment
+
+1. Import the Next.js project into Vercel with the repository root as the Root Directory and the default `npm run build` command. Do not configure a static export.
+2. In Vercel → Project → Settings → Environment Variables, add these for the environments you will deploy (Production, and Preview if needed):
+   - `NEXT_PUBLIC_SUPABASE_URL` — the intended Supabase project URL.
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — that project's publishable key; never use a service-role/secret key in a public variable.
+   - `APP_URL` — the canonical deployed HTTPS origin, with no path (for example `https://your-domain.example`).
+   - `DATABASE_URL` — the intended Supabase PostgreSQL runtime connection URL.
+   - `DATABASE_SSL_CA_CERT` — the Supabase root CA certificate PEM contents, stored as a Vercel secret/environment variable. Do not use a machine-local `DATABASE_SSL_CA_PATH` on Vercel.
+3. Do not run `npm run db:migrate` as part of Vercel's build or deployment. Review and apply database migrations separately under the project's migration approval process. `DIRECT_URL` is only needed for that separately controlled migration workflow.
+4. The authenticated app routes are explicitly dynamic because they read the request's Supabase session. This prevents Next.js from trying to authenticate a visitor during static prerender/build. Supabase variables are still required at runtime; missing values will prevent Auth-backed pages from working.
+5. In Supabase Dashboard → Authentication → URL Configuration, set the Site URL to the deployed origin and add the exact deployed `/auth/confirm` URL to Redirect URLs. Add Preview callback URLs only if those preview origins are intended and allowed.
+6. After setting/changing environment variables, trigger a fresh deployment. Verify sign-in and callback, then verify private finance APIs only after database connectivity and intended project/schema have been independently confirmed. A successful Vercel build alone does not prove hosted Auth or database connectivity.
+
 ## Migrations
 
 Migrations `0000`, `0001`, and `0002` are applied and verified in the Supabase development project (`oxjnxvqarqrilzuetzai`). The live Drizzle ledger contains three rows, with hashes and `created_at` values matching local SQL and `drizzle/meta/_journal.json`. Migration `0002` was applied through the Supabase migration tool, then its Drizzle bookkeeping row was recorded separately. Do not rerun or replay `0002`.
