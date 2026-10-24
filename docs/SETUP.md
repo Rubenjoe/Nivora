@@ -20,13 +20,14 @@ Supabase Auth and Supabase PostgreSQL are integrated in local code. Migrations `
 2. In Vercel → Project → Settings → Environment Variables, add these for the environments you will deploy (Production, and Preview if needed):
    - `NEXT_PUBLIC_SUPABASE_URL` — the intended Supabase project URL.
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — that project's publishable key; never use a service-role/secret key in a public variable.
-   - `APP_URL` — the canonical deployed HTTPS origin, with no path (for example `https://your-domain.example`).
+   - `APP_URL` — the exact canonical HTTPS origin you use to open this deployment, with no path (for example `https://your-domain.example`). The login/API CSRF check compares the request `Origin` to this value. Set Production and Preview values separately; for the stable `main` branch alias, use that exact branch alias as the Preview value.
    - `DATABASE_URL` — the intended Supabase PostgreSQL runtime connection URL.
    - `DATABASE_SSL_CA_CERT` — the Supabase root CA certificate PEM contents, stored as a Vercel secret/environment variable. Do not use a machine-local `DATABASE_SSL_CA_PATH` on Vercel.
 3. Do not run `npm run db:migrate` as part of Vercel's build or deployment. Review and apply database migrations separately under the project's migration approval process. `DIRECT_URL` is only needed for that separately controlled migration workflow.
 4. The authenticated app routes are explicitly dynamic because they read the request's Supabase session. This prevents Next.js from trying to authenticate a visitor during static prerender/build. Supabase variables are still required at runtime; missing values will prevent Auth-backed pages from working.
 5. In Supabase Dashboard → Authentication → URL Configuration, set the Site URL to the deployed origin and add the exact deployed `/auth/confirm` URL to Redirect URLs. Add Preview callback URLs only if those preview origins are intended and allowed.
 6. After setting/changing environment variables, trigger a fresh deployment. Verify sign-in and callback, then verify private finance APIs only after database connectivity and intended project/schema have been independently confirmed. A successful Vercel build alone does not prove hosted Auth or database connectivity.
+7. Check Vercel → Project → Settings → Deployment Protection. For a public production site, do not require Vercel Authentication on Production deployments; this is separate from Nivora's Supabase login. Preview deployments may remain protected, but testers must pass Vercel's access gate before the app's own routes can be tested.
 
 ## Migrations
 
