@@ -12,3 +12,5 @@ certs/
 *.crt
 *.pem
 !.env.example
+
+.vercel
