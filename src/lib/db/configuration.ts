@@ -5,6 +5,7 @@ export type DatabaseConfigurationIssue =
   | "missing_runtime_url"
   | "invalid_runtime_url"
   | "missing_ca_file"
+  | "invalid_ca_certificate"
   | "invalid_direct_url";
 
 export class DatabaseConfigurationError extends Error {
@@ -34,10 +35,33 @@ export function resolveCaCertificatePath(): string | undefined {
 }
 
 export function resolveCaCertificate(): string | undefined {
-  const configuredCertificate = process.env.DATABASE_SSL_CA_CERT?.trim();
-  if (configuredCertificate) return configuredCertificate;
+  const configuredCertificate = process.env.DATABASE_SSL_CA;
+  if (configuredCertificate !== undefined)
+    return validateCaCertificate(configuredCertificate);
   const certificatePath = resolveCaCertificatePath();
-  return certificatePath ? fs.readFileSync(certificatePath, "utf8") : undefined;
+  if (!certificatePath) {
+    throw new DatabaseConfigurationError(
+      "missing_ca_file",
+      "A Supabase CA certificate is required. Set DATABASE_SSL_CA or point DATABASE_SSL_CA_PATH to a readable PEM certificate file.",
+    );
+  }
+  return validateCaCertificate(fs.readFileSync(certificatePath, "utf8"));
+}
+
+function validateCaCertificate(certificate: string): string {
+  const normalized = certificate.trim();
+  if (
+    !normalized ||
+    !/^-----BEGIN CERTIFICATE-----\s+[\s\S]+?\s+-----END CERTIFICATE-----$/.test(
+      normalized,
+    )
+  ) {
+    throw new DatabaseConfigurationError(
+      "invalid_ca_certificate",
+      "The configured Supabase CA certificate must contain a PEM BEGIN CERTIFICATE and END CERTIFICATE block.",
+    );
+  }
+  return normalized;
 }
 
 export function validateDatabaseConfiguration() {
@@ -94,7 +118,9 @@ export function userFacingStorageMessage(issue: DatabaseConfigurationIssue) {
     case "invalid_runtime_url":
       return "Financial storage is misconfigured. DATABASE_URL must be a valid PostgreSQL URL from your Supabase project.";
     case "missing_ca_file":
-      return "Financial storage needs a TLS certificate. Set DATABASE_SSL_CA_PATH to your downloaded Supabase CA file.";
+      return "Financial storage needs a TLS certificate. Set DATABASE_SSL_CA to the Supabase CA PEM contents, or DATABASE_SSL_CA_PATH to a readable PEM file.";
+    case "invalid_ca_certificate":
+      return "Financial storage has an invalid TLS certificate. Set DATABASE_SSL_CA to the complete Supabase CA PEM contents, or use a valid PEM file with DATABASE_SSL_CA_PATH.";
     case "invalid_direct_url":
       return "Migration settings are misconfigured. DIRECT_URL must be a valid PostgreSQL URL.";
   }

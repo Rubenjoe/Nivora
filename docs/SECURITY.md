@@ -9,7 +9,7 @@
 - The profile policy binds `supabase_user_id` to `(select auth.uid())` for SELECT/INSERT/UPDATE/DELETE. UPDATE has both `USING` and `WITH CHECK`, so that identity value cannot be changed to another user ID. Category and transaction policies similarly require the row's profile to belong to `auth.uid()`; UPDATE validates both existing and resulting ownership.
 - Policies do not use `user_metadata`, and no `SECURITY DEFINER` authorization functions are used.
 - Parameterize database queries with Drizzle, validate inputs, return safe errors, and avoid sensitive logging/caching.
-- Configure TLS for the runtime PostgreSQL connection: set `DATABASE_SSL_CA_PATH` to the Supabase root CA certificate downloaded from the dashboard (Project settings → Database → connection → CA cert). The client always verifies the server certificate (`rejectUnauthorized: true`); certificate verification is never disabled. The certificate file must be kept out of Git (see `.gitignore`).
+- Configure TLS for PostgreSQL connections with `DATABASE_SSL_CA` containing the complete Supabase CA PEM, or `DATABASE_SSL_CA_PATH` pointing to a local PEM file. The inline value takes precedence. The client always verifies the server certificate (`rejectUnauthorized: true`); certificate verification is never disabled. The certificate file must be kept out of Git (see `.gitignore`).
 - Keep publishable Supabase configuration distinct from database credentials. Never expose a service-role/secret key in a `NEXT_PUBLIC_` variable or browser code.
 - Bound pagination/exports and rate-limit sensitive/expensive endpoints.
 - Prove cross-user reads/updates/deletes fail in automated tests. Do not weaken ownership tests.

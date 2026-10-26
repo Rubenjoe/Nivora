@@ -3,19 +3,25 @@ import path from "node:path";
 import pg from "pg";
 
 const runtimeUrl = process.env.DATABASE_URL;
+const sslCa = process.env.DATABASE_SSL_CA?.trim();
 const sslCaPath = process.env.DATABASE_SSL_CA_PATH;
 if (!runtimeUrl) {
   console.log("DATABASE_URL missing");
   process.exit(1);
 }
 const ssl = { rejectUnauthorized: true };
-if (sslCaPath) {
+if (sslCa) {
+  ssl.ca = sslCa;
+} else if (sslCaPath) {
   const resolved = path.resolve(sslCaPath);
   if (!fs.existsSync(resolved)) {
     console.log("CA file missing at resolved path");
     process.exit(2);
   }
   ssl.ca = fs.readFileSync(resolved, "utf8");
+} else {
+  console.log("DATABASE_SSL_CA or DATABASE_SSL_CA_PATH missing");
+  process.exit(2);
 }
 const pool = new pg.Pool({
   connectionString: runtimeUrl,

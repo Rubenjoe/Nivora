@@ -59,7 +59,7 @@ export function storageFailureMessage(detail: string) {
     lowered.includes("certificate") ||
     lowered.includes("unable to verify")
   ) {
-    return "Financial storage rejected the TLS certificate. Download the Supabase CA certificate and set DATABASE_SSL_CA_PATH in .env.local.";
+    return "Financial storage rejected the TLS certificate. Set DATABASE_SSL_CA to the Supabase CA PEM contents, or DATABASE_SSL_CA_PATH to a local certificate file.";
   }
   return "Financial storage is not available right now. Check the local database configuration (see docs/SETUP.md) and try again.";
 }

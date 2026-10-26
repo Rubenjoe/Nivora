@@ -1240,3 +1240,51 @@ label.premium-label span {
       0 14px 32px rgb(0 0 0 / 42%);
   }
 }
+
+/* Settings uses one shared form so the footer submits every preference.
+   Keep its cards in normal flow: the generic feature-form top offset was
+   moving them visually while the form grid kept their original row height. */
+.settings-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 18px;
+  width: 100%;
+  max-width: none;
+}
+
+.settings-form > .settings-card {
+  position: static;
+  top: auto;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  align-self: stretch;
+}
+
+.settings-form > .transaction-message,
+.settings-form > .settings-actions {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.settings-form > .transaction-message {
+  margin: 0;
+}
+
+.settings-form > .settings-actions {
+  align-items: center;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.settings-form > .settings-actions button {
+  min-height: 44px;
+}
+
+@media (max-width: 860px) {
+  .settings-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
