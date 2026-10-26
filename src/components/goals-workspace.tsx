@@ -8,6 +8,7 @@ import {
   type FormEvent,
 } from "react";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { SmokeType } from "@/components/ui/smoke-type";
 import {
   Archive,
   CheckCircle2,
@@ -293,7 +294,9 @@ export function GoalsWorkspace() {
     <div className="feature-workspace">
       <div className="feature-intro">
         <p className="eyebrow">SAVE WITH INTENT</p>
-        <h1>Savings goals</h1>
+        <h1>
+          <SmokeType text="Savings goals" />
+        </h1>
         <p>
           Track progress toward a target. Goals don&apos;t move money — they
           keep your intention visible.

@@ -343,6 +343,12 @@ label.premium-label span {
   filter: none;
 }
 
+.premium-cash-flow-chart {
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .premium-chart-hit {
   cursor: crosshair;
 }
@@ -356,6 +362,14 @@ label.premium-label span {
   stroke: var(--color-primary);
   stroke-width: 1;
   stroke-dasharray: 3 4;
+}
+
+.premium-chart-cursor {
+  stroke: var(--color-primary);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 .premium-chart-point {

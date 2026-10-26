@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { SmokeType } from "@/components/ui/smoke-type";
 import { Download, LoaderCircle, LogOut } from "lucide-react";
 
 type Profile = {
@@ -134,7 +135,9 @@ export function SettingsWorkspace({
     <div className="feature-workspace">
       <div className="feature-intro">
         <p className="eyebrow">YOUR PREFERENCES</p>
-        <h1>Settings</h1>
+        <h1>
+          <SmokeType text="Settings" />
+        </h1>
         <p>Preferences persist to your profile and apply across Nivora.</p>
       </div>
 

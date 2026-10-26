@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BookOpen, LifeBuoy, Lock, ShieldCheck } from "lucide-react";
+import { SmokeType } from "@/components/ui/smoke-type";
 
 const faqs = [
   {
@@ -41,7 +42,9 @@ export default function HelpPage() {
     <div className="feature-workspace">
       <div className="feature-intro">
         <p className="eyebrow">WE&apos;RE HERE TO HELP</p>
-        <h1>Help &amp; Support</h1>
+        <h1>
+          <SmokeType text="Help & Support" />
+        </h1>
         <p>Answers to common questions, and honest guidance on reaching us.</p>
       </div>
 

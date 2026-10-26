@@ -8,6 +8,7 @@ import {
   type FormEvent,
 } from "react";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { SmokeType } from "@/components/ui/smoke-type";
 import {
   CalendarClock,
   LoaderCircle,
@@ -236,7 +237,9 @@ export function RecurringWorkspace() {
     <div className="feature-workspace">
       <div className="feature-intro">
         <p className="eyebrow">MONEY ON A SCHEDULE</p>
-        <h1>Recurring transactions</h1>
+        <h1>
+          <SmokeType text="Recurring transactions" />
+        </h1>
         <p>
           Set up income and expenses that repeat. Recording is always explicit —
           Nivora never silently creates transactions.

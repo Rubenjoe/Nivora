@@ -25,7 +25,7 @@ const GlowingEffect = memo(
     variant = "default",
     glow = false,
     className,
-    movementDuration = 2,
+    movementDuration = 0.16,
     borderWidth = 1,
     disabled = true,
   }: GlowingEffectProps) => {
@@ -33,6 +33,7 @@ const GlowingEffect = memo(
     const prefersReducedMotion = useReducedMotion();
     const lastPosition = useRef({ x: 0, y: 0 });
     const animationFrameRef = useRef<number>(0);
+    const animationControlsRef = useRef<{ stop: () => void } | null>(null);
 
     const handleMove = useCallback(
       (e?: MouseEvent | { x: number; y: number }) => {
@@ -63,6 +64,8 @@ const GlowingEffect = memo(
 
           if (distanceFromCenter < inactiveRadius) {
             element.style.setProperty("--active", "0");
+            animationControlsRef.current?.stop();
+            animationControlsRef.current = null;
             return;
           }
 
@@ -74,7 +77,11 @@ const GlowingEffect = memo(
 
           element.style.setProperty("--active", isActive ? "1" : "0");
 
-          if (!isActive) return;
+          if (!isActive) {
+            animationControlsRef.current?.stop();
+            animationControlsRef.current = null;
+            return;
+          }
 
           const currentAngle =
             parseFloat(element.style.getPropertyValue("--start")) || 0;
@@ -86,7 +93,8 @@ const GlowingEffect = memo(
           const angleDiff = ((targetAngle - currentAngle + 180) % 360) - 180;
           const newAngle = currentAngle + angleDiff;
 
-          animate(currentAngle, newAngle, {
+          animationControlsRef.current?.stop();
+          animationControlsRef.current = animate(currentAngle, newAngle, {
             duration: movementDuration,
             ease: [0.16, 1, 0.3, 1],
             onUpdate: (value) => {
@@ -113,6 +121,8 @@ const GlowingEffect = memo(
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
         }
+        animationControlsRef.current?.stop();
+        animationControlsRef.current = null;
         window.removeEventListener("scroll", handleScroll);
         document.body.removeEventListener("pointermove", handlePointerMove);
       };

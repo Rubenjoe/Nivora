@@ -6,6 +6,7 @@ import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { FormEvent, useState } from "react";
 import { ArrowLeft, LoaderCircle } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SmokeType } from "@/components/ui/smoke-type";
 
 type AuthMode = "login" | "register";
 
@@ -85,7 +86,11 @@ export function AuthForm({
           <ThemeToggle />
         </div>
         <p className="eyebrow">CLARITY FOR EVERY FINANCIAL DECISION</p>
-        <h1>{register ? "A clearer picture starts here." : "Welcome back."}</h1>
+        <h1>
+          <SmokeType
+            text={register ? "A clearer picture starts here." : "Welcome back."}
+          />
+        </h1>
         <p className="auth-intro">
           {register
             ? "Create your private space to make sense of your money."

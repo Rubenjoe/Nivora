@@ -649,12 +649,18 @@ const Dither = ({
         state.reveal = Math.min(1, state.reveal + dt / INTRO_SECONDS);
 
       render();
+      const fadingTrail = trailPoints.some(
+        (point, index) => index > 0 && point.weight > 0.01,
+      );
+      const pointerSettling = engaged
+        ? state.presence < 0.995 || fadingTrail
+        : state.presence > 0.002 ||
+          trailPoints.some((point) => point.weight > 0.01);
       const busy =
         !s.disableAnimation ||
         state.reveal < 1 ||
         ripples.length > 0 ||
-        state.presence > 0.002 ||
-        trailPoints.some((point) => point.weight > 0.01);
+        pointerSettling;
       if (busy && !reduce) raf = requestAnimationFrame(frame);
       else last = 0;
     };

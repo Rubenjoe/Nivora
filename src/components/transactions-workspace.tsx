@@ -10,6 +10,7 @@ import {
 } from "react";
 import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { SmokeType } from "@/components/ui/smoke-type";
 import { formatMoney } from "@/lib/finance/money-format";
 
 type Category = {
@@ -348,7 +349,9 @@ export function TransactionsWorkspace() {
     <div className="feature-workspace">
       <div className="feature-intro">
         <p className="eyebrow">YOUR FINANCIAL RECORD</p>
-        <h1>Transactions</h1>
+        <h1>
+          <SmokeType text="Transactions" />
+        </h1>
         <p>
           Record what came in and what went out. Every entry below is real,
           saved data — nothing is filled in for you.

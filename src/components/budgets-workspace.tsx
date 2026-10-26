@@ -8,6 +8,7 @@ import {
   type FormEvent,
 } from "react";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { SmokeType } from "@/components/ui/smoke-type";
 import {
   AlertTriangle,
   Archive,
@@ -243,7 +244,9 @@ export function BudgetsWorkspace() {
     <div className="feature-workspace">
       <div className="feature-intro">
         <p className="eyebrow">PLAN YOUR MONTH</p>
-        <h1>Budgets</h1>
+        <h1>
+          <SmokeType text="Budgets" />
+        </h1>
         <p>
           Set a monthly spending plan, optionally for one category, and watch
           your real expenses fill it.

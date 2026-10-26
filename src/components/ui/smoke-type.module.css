@@ -1,0 +1,101 @@
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.visual {
+  display: inline;
+  color: inherit;
+  white-space: inherit;
+}
+
+.letter {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+  animation: smoke-condense 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.letter::before {
+  position: absolute;
+  z-index: -1;
+  inset: -0.28em -0.38em;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgb(167 155 255 / 58%) 0%,
+    rgb(115 201 231 / 26%) 36%,
+    transparent 76%
+  );
+  content: "";
+  opacity: 0;
+  filter: blur(8px);
+  pointer-events: none;
+  animation: smoke-drift 1050ms ease-out both;
+  animation-delay: inherit;
+}
+
+@keyframes smoke-condense {
+  0% {
+    transform: translate3d(0, 0.32em, 0) scale(1.1);
+    opacity: 0;
+    filter: blur(0.5em);
+    text-shadow: 0 0 0.7em rgb(167 155 255 / 78%);
+  }
+  32% {
+    transform: translate3d(0, -0.06em, 0) scale(1.025);
+    opacity: 0.72;
+    filter: blur(0.16em);
+  }
+  68% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.94;
+    filter: blur(0.035em);
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+    filter: blur(0);
+    text-shadow: none;
+  }
+}
+
+@keyframes smoke-drift {
+  0% {
+    transform: translate3d(-8%, 24%, 0) scale(0.5);
+    opacity: 0;
+    filter: blur(7px);
+  }
+  28% {
+    transform: translate3d(0, -8%, 0) scale(1.08);
+    opacity: 0.68;
+    filter: blur(13px);
+  }
+  100% {
+    transform: translate3d(8%, -46%, 0) scale(1.7);
+    opacity: 0;
+    filter: blur(22px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .letter {
+    animation: none;
+    transform: none;
+    opacity: 1;
+    filter: none;
+  }
+
+  .letter::before {
+    animation: none;
+    opacity: 0;
+    filter: none;
+  }
+}

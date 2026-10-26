@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./dither.css";
 import { AmbientDither } from "@/components/ambient-dither";
 import { ShootingStars } from "@/components/ui/shooting-stars";
-import { StarsBackground } from "@/components/ui/stars-background";
 import "./globals.css";
 import "./transactions.css";
 import "./theme.css";
@@ -43,11 +42,6 @@ export default function RootLayout({
             maxSpeed={12}
             starColor="#b8a8ff"
             trailColor="#73c9e7"
-          />
-          <StarsBackground
-            className="nivora-stars"
-            starDensity={0.00009}
-            twinkleProbability={0.55}
           />
         </div>
         {children}

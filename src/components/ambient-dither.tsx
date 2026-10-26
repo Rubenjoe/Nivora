@@ -49,7 +49,7 @@ export function AmbientDither() {
       trail={0.2}
       clickRipple
       intro={false}
-      disableAnimation={Boolean(prefersReducedMotion)}
+      disableAnimation
       dpr={1}
     />
   );

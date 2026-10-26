@@ -11,6 +11,7 @@ import {
 import { BarChart3, Download, TrendingDown, TrendingUp } from "lucide-react";
 import { CashFlowChart } from "@/components/cash-flow-chart";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { SmokeType } from "@/components/ui/smoke-type";
 import { formatMoney } from "@/lib/finance/money-format";
 import { assignCategoryColors } from "@/lib/finance/category-colors";
 
@@ -160,7 +161,9 @@ export function AnalyticsWorkspace() {
       <div className="feature-intro analytics-intro">
         <div>
           <p className="eyebrow">UNDERSTAND YOUR MONEY</p>
-          <h1>Analytics</h1>
+          <h1>
+            <SmokeType text="Analytics" />
+          </h1>
           <p>
             Every figure below is computed from your recorded transactions —
             nothing is estimated or filled in.
