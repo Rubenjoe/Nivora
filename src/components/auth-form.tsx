@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { FormEvent, useState } from "react";
 import { ArrowLeft, LoaderCircle } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -69,6 +70,13 @@ export function AuthForm({
         Skip to sign-in form
       </a>
       <div className="auth-panel">
+        <GlowingEffect
+          glow
+          disabled={false}
+          spread={32}
+          proximity={56}
+          inactiveZone={0.12}
+        />
         <Link href="/" className="auth-back">
           <ArrowLeft size={16} /> Back to overview
         </Link>

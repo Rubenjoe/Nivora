@@ -9,6 +9,7 @@ import {
   type FormEvent,
 } from "react";
 import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { formatMoney } from "@/lib/finance/money-format";
 
 type Category = {
@@ -359,6 +360,13 @@ export function TransactionsWorkspace() {
           className="premium-card transaction-form-card"
           aria-labelledby="entry-title"
         >
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="transaction-card-heading">
             <div className="entry-mark">
               <Plus size={18} aria-hidden="true" />
@@ -529,6 +537,13 @@ export function TransactionsWorkspace() {
           id="transaction-list"
           aria-labelledby="history-title"
         >
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="history-heading">
             <div>
               <h2 id="history-title">History</h2>

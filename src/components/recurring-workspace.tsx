@@ -7,6 +7,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 import {
   CalendarClock,
   LoaderCircle,
@@ -257,6 +258,13 @@ export function RecurringWorkspace() {
           className="feature-form-card"
           aria-labelledby="recurring-form-title"
         >
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="feature-card-heading">
             <div className="entry-mark">
               <Plus size={18} aria-hidden="true" />
@@ -395,6 +403,13 @@ export function RecurringWorkspace() {
           className="feature-list-card"
           aria-labelledby="recurring-list-title"
         >
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="history-heading">
             <div>
               <h2 id="recurring-list-title">Your schedules</h2>

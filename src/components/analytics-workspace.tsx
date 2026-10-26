@@ -10,6 +10,7 @@ import {
 } from "react";
 import { BarChart3, Download, TrendingDown, TrendingUp } from "lucide-react";
 import { CashFlowChart } from "@/components/cash-flow-chart";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { formatMoney } from "@/lib/finance/money-format";
 import { assignCategoryColors } from "@/lib/finance/category-colors";
 
@@ -234,6 +235,13 @@ export function AnalyticsWorkspace() {
               },
             ].map(({ label, value, delta, tone }) => (
               <article className="summary-card" key={label}>
+                <GlowingEffect
+                  glow
+                  disabled={false}
+                  spread={24}
+                  proximity={48}
+                  inactiveZone={0.12}
+                />
                 <div className="summary-label">
                   <span>{label}</span>
                   <span className={`summary-icon ${tone}`}>
@@ -260,6 +268,13 @@ export function AnalyticsWorkspace() {
 
           <div className="dashboard-panels">
             <section className="panel-card chart-panel">
+              <GlowingEffect
+                glow
+                disabled={false}
+                spread={30}
+                proximity={56}
+                inactiveZone={0.12}
+              />
               <div className="section-heading compact">
                 <div>
                   <h2>Cash flow</h2>
@@ -273,6 +288,13 @@ export function AnalyticsWorkspace() {
             </section>
 
             <section className="panel-card category-panel">
+              <GlowingEffect
+                glow
+                disabled={false}
+                spread={30}
+                proximity={56}
+                inactiveZone={0.12}
+              />
               <div className="section-heading compact">
                 <div>
                   <h2>Category breakdown</h2>
@@ -343,6 +365,13 @@ export function AnalyticsWorkspace() {
 
           {data.budgets.length ? (
             <section className="panel-card">
+              <GlowingEffect
+                glow
+                disabled={false}
+                spread={30}
+                proximity={56}
+                inactiveZone={0.12}
+              />
               <div className="section-heading compact">
                 <div>
                   <h2>Budget performance</h2>

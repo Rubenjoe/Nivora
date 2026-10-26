@@ -57,6 +57,34 @@ body {
   background-color: #070709;
 }
 
+.nivora-ambient-background {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.52;
+}
+
+.nivora-ambient-background .nivora-stars,
+.nivora-ambient-background .nivora-shooting-stars {
+  pointer-events: none;
+}
+
+.premium-shell,
+.auth-page {
+  position: relative;
+  z-index: 1;
+}
+
+:root[data-theme="light"] .nivora-ambient-background {
+  opacity: 0.22;
+}
+
+:root[data-theme="light"] .nivora-ambient-background .nivora-stars {
+  filter: invert(0.82);
+}
+
 :root[data-theme="dark"] body {
   background-image:
     radial-gradient(
@@ -377,6 +405,15 @@ textarea:focus-visible {
   border: 1px solid rgb(255 255 255 / 8%);
   border-radius: 18px;
   background: rgb(9 10 12 / 35%);
+}
+
+.premium-nav-glass-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 4px;
 }
 
 :root[data-theme="light"] .premium-nav-desktop {
@@ -1080,7 +1117,10 @@ textarea:focus-visible {
 .feature-list-card,
 .transaction-form-card,
 .transaction-history-card,
-.settings-card {
+.settings-card,
+.auth-panel {
+  position: relative;
+  isolation: isolate;
   min-width: 0;
   padding: 18px;
   border: 1px solid var(--color-border);

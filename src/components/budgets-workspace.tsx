@@ -7,6 +7,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 import {
   AlertTriangle,
   Archive,
@@ -254,6 +255,13 @@ export function BudgetsWorkspace() {
           className="feature-form-card"
           aria-labelledby="budget-form-title"
         >
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="feature-card-heading">
             <div className="entry-mark">
               <Wallet size={18} aria-hidden="true" />
@@ -378,6 +386,13 @@ export function BudgetsWorkspace() {
           className="feature-list-card"
           aria-labelledby="budget-list-title"
         >
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="history-heading">
             <div>
               <h2 id="budget-list-title">Your budgets</h2>

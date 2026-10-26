@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LiquidGlass } from "@/components/ui/liquid-glass";
 import {
   sessionInitials,
   useNavSession,
@@ -228,7 +229,7 @@ export function AppShell({
         />
       )}
       <header className="premium-app-header glass-surface">
-        <div className="premium-header-brand">
+        <div className="premium-header-brand glass-surface">
           <button
             type="button"
             className="premium-mobile-toggle"
@@ -241,13 +242,16 @@ export function AppShell({
           </button>
           <BrandLogo />
         </div>
-        <nav
+        <LiquidGlass
           aria-label="Main navigation"
+          role="navigation"
           className="premium-nav-desktop glass-surface"
+          contentClassName="premium-nav-glass-content"
+          tint={0.04}
         >
           {navigationLinks}
-        </nav>
-        <div className="premium-header-actions">
+        </LiquidGlass>
+        <div className="premium-header-actions glass-surface">
           {modeControl}
           <ThemeToggle />
           <TopBarAuth session={session} onSignedOut={() => void refresh()} />

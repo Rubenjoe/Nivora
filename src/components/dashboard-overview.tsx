@@ -13,6 +13,7 @@ import {
 import { CashFlowChart } from "@/components/cash-flow-chart";
 import { DashboardGreeting } from "@/components/dashboard-greeting";
 import { DonutChart } from "@/components/donut-chart";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { formatMoney } from "@/lib/finance/money-format";
 import { assignCategoryColors } from "@/lib/finance/category-colors";
 
@@ -60,6 +61,22 @@ type DashboardData = {
   }[];
 };
 
+const DASHBOARD_RANGES = [
+  { key: "this-month", label: "This month" },
+  { key: "last-month", label: "Last month" },
+  { key: "last-7-days", label: "7 days" },
+  { key: "last-30-days", label: "30 days" },
+] as const;
+
+type DashboardRange = (typeof DASHBOARD_RANGES)[number]["key"];
+
+function rangeLabel(range: DashboardRange) {
+  return (
+    DASHBOARD_RANGES.find((option) => option.key === range)?.label ??
+    "This month"
+  );
+}
+
 function dateISO(date: Date) {
   const localDate = new Date(date);
   localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
@@ -67,18 +84,25 @@ function dateISO(date: Date) {
 }
 
 async function readDashboard(
-  period: "this-month" | "last-month",
+  period: DashboardRange,
   mode: "simple" | "pro",
 ): Promise<DashboardData> {
   const now = new Date();
-  const start =
-    period === "this-month"
-      ? new Date(now.getFullYear(), now.getMonth(), 1)
-      : new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const end =
-    period === "this-month"
-      ? now
-      : new Date(now.getFullYear(), now.getMonth(), 0);
+  const start = new Date(now);
+  let end = new Date(now);
+  if (period === "this-month") {
+    start.setDate(1);
+  } else if (period === "last-month") {
+    start.setFullYear(now.getFullYear(), now.getMonth() - 1, 1);
+    end = new Date(now.getFullYear(), now.getMonth(), 0);
+  } else {
+    if (period === "last-7-days") {
+      start.setDate(now.getDate() - 7);
+      end.setDate(now.getDate() - 1);
+    } else {
+      start.setDate(now.getDate() - 29);
+    }
+  }
   const query = new URLSearchParams({
     from: dateISO(start),
     to: dateISO(end),
@@ -144,9 +168,7 @@ export function DashboardOverview({
 }) {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
-  const [period, setPeriod] = useState<"this-month" | "last-month">(
-    "this-month",
-  );
+  const [period, setPeriod] = useState<DashboardRange>("this-month");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -199,24 +221,30 @@ export function DashboardOverview({
           period={period}
         />
         <div className="dashboard-head-actions">
-          <div className="period-select-wrap">
-            <label className="premium-label" style={{ marginBottom: 0 }}>
-              Period
-            </label>
-            <select
-              className="premium-select"
-              aria-label="Choose summary period"
-              value={period}
-              onChange={(event) => {
-                setLoading(true);
-                setDashboard(null);
-                setDashboardError(null);
-                setPeriod(event.target.value as "this-month" | "last-month");
-              }}
-            >
-              <option value="this-month">This month</option>
-              <option value="last-month">Last month</option>
-            </select>
+          <div
+            className="dashboard-range-control"
+            role="group"
+            aria-label="Overview time range"
+          >
+            {DASHBOARD_RANGES.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                className={`dashboard-range-option${
+                  period === option.key ? " active" : ""
+                }`}
+                aria-pressed={period === option.key}
+                onClick={() => {
+                  if (period === option.key) return;
+                  setLoading(true);
+                  setDashboard(null);
+                  setDashboardError(null);
+                  setPeriod(option.key);
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
           <Link className="premium-btn-premium" href="/transactions">
             <Plus size={16} aria-hidden="true" /> Add transaction
@@ -262,6 +290,13 @@ export function DashboardOverview({
                 : "var(--color-expense)";
           return (
             <article className={`premium-summary-card ${accent}`} key={label}>
+              <GlowingEffect
+                glow
+                disabled={false}
+                spread={24}
+                proximity={48}
+                inactiveZone={0.12}
+              />
               <div className="premium-summary-head">
                 <span className="premium-summary-label">{label}</span>
                 <span
@@ -284,7 +319,7 @@ export function DashboardOverview({
               {!delta && (
                 <p className="premium-summary-note">
                   {dashboard
-                    ? `Recorded ${period === "this-month" ? "this month" : "last month"}`
+                    ? `Recorded · ${rangeLabel(period)}`
                     : "Selected period"}
                 </p>
               )}
@@ -295,6 +330,13 @@ export function DashboardOverview({
 
       <div className="premium-dashboard-grid">
         <section className="premium-card premium-analytics-panel">
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="premium-section">
             <div>
               <h2>Cash flow</h2>
@@ -317,6 +359,13 @@ export function DashboardOverview({
         </section>
 
         <section className="premium-card premium-category-panel">
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="premium-section">
             <div>
               <h2>Spending breakdown</h2>
@@ -386,10 +435,17 @@ export function DashboardOverview({
 
       {(dashboard?.budgets?.length || mode === "pro") && (
         <section className="premium-card premium-budget-panel">
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="premium-section">
             <div>
               <h2>Budget progress</h2>
-              <p>Active budgets for the current month.</p>
+              <p>Active budgets for the month ending in this range.</p>
             </div>
           </div>
           {!dashboard?.budgets?.length ? (
@@ -428,6 +484,13 @@ export function DashboardOverview({
 
       {dashboard?.goals?.length ? (
         <section className="premium-card premium-goals-panel">
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="premium-section">
             <div>
               <h2>Savings goals</h2>
@@ -459,6 +522,13 @@ export function DashboardOverview({
 
       {mode === "pro" && dashboard?.upcoming?.length ? (
         <section className="premium-card premium-recurring-panel">
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <div className="premium-section">
             <div>
               <h2>Upcoming recurring</h2>
@@ -485,6 +555,13 @@ export function DashboardOverview({
       ) : null}
 
       <section className="premium-card premium-recent-panel">
+        <GlowingEffect
+          glow
+          disabled={false}
+          spread={30}
+          proximity={56}
+          inactiveZone={0.12}
+        />
         <div className="premium-section">
           <div>
             <h2>Recent activity</h2>

@@ -1,0 +1,14 @@
+.dither-container.nivora-dither {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  opacity: 0.28;
+}
+
+:root[data-theme="light"] .dither-container.nivora-dither {
+  opacity: 0.15;
+}
+
+.dither-container.nivora-dither .dither-canvas {
+  pointer-events: none;
+}

@@ -1,4 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import "./dither.css";
+import { AmbientDither } from "@/components/ambient-dither";
+import { ShootingStars } from "@/components/ui/shooting-stars";
+import { StarsBackground } from "@/components/ui/stars-background";
 import "./globals.css";
 import "./transactions.css";
 import "./theme.css";
@@ -28,7 +32,26 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <div className="nivora-ambient-background" aria-hidden="true">
+          <AmbientDither />
+          <ShootingStars
+            className="nivora-shooting-stars"
+            minDelay={2600}
+            maxDelay={7600}
+            minSpeed={6}
+            maxSpeed={12}
+            starColor="#b8a8ff"
+            trailColor="#73c9e7"
+          />
+          <StarsBackground
+            className="nivora-stars"
+            starDensity={0.00009}
+            twinkleProbability={0.55}
+          />
+        </div>
+        {children}
+      </body>
     </html>
   );
 }

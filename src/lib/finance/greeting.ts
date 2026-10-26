@@ -1,4 +1,5 @@
-export type GreetingPeriod = "this-month" | "last-month";
+export type GreetingPeriod =
+  "this-month" | "last-month" | "last-7-days" | "last-30-days";
 
 export function greetingForHour(hour: number): string {
   if (hour < 12) return "Good morning";
@@ -35,7 +36,10 @@ export function buildGreeting(
 }
 
 export function greetingSubtitle(period: GreetingPeriod): string {
-  return period === "this-month"
-    ? "Here's your financial picture for this month."
-    : "Here's how last month closed out.";
+  if (period === "last-month") return "Here's how last month closed out.";
+  if (period === "last-7-days")
+    return "Your financial picture over the last 7 days.";
+  if (period === "last-30-days")
+    return "Your financial picture over the last 30 days.";
+  return "Here's your financial picture for this month.";
 }

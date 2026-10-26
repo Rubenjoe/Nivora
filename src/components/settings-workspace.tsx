@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { Download, LoaderCircle, LogOut } from "lucide-react";
 
 type Profile = {
@@ -139,6 +140,13 @@ export function SettingsWorkspace({
 
       <form className="settings-form" onSubmit={save}>
         <section className="feature-form-card settings-card">
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <h2>Profile</h2>
           <label htmlFor="settings-name">Display name</label>
           <input
@@ -193,6 +201,13 @@ export function SettingsWorkspace({
         </section>
 
         <section className="feature-form-card settings-card">
+          <GlowingEffect
+            glow
+            disabled={false}
+            spread={30}
+            proximity={56}
+            inactiveZone={0.12}
+          />
           <h2>Experience</h2>
           <div
             className="settings-mode-row"
