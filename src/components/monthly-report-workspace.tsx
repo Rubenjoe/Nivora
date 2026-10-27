@@ -1,23 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
+  ArrowDownLeft,
   ArrowRight,
+  ArrowUpRight,
   Award,
   Calendar,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Download,
-  FileText,
-  Info,
+  Filter,
+  Layers,
   Printer,
+  Search,
   Sparkles,
+  Store,
   TrendingDown,
   TrendingUp,
   Wallet,
+  X,
 } from "lucide-react";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { SmokeType } from "@/components/ui/smoke-type";
@@ -26,6 +30,7 @@ import { ComparisonBars } from "@/components/comparison-bars";
 import { VelocitySpendChart } from "@/components/velocity-spend-chart";
 import { CategoryBarChart } from "@/components/category-bar-chart";
 import { HealthScoreGauge } from "@/components/health-score-gauge";
+import { WeeklySpendChart } from "@/components/weekly-spend-chart";
 import type { MonthlyReportResult } from "@/lib/finance/monthly-report";
 
 function defaultMonthISO() {
@@ -40,6 +45,14 @@ export function MonthlyReportWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+
+  // Drilldown and Appendix filters
+  const [drillCategory, setDrillCategory] = useState<string | null>(null);
+  const [drillMerchant, setDrillMerchant] = useState<string | null>(null);
+  const [appendixSearch, setAppendixSearch] = useState("");
+  const [appendixKind, setAppendixKind] = useState<
+    "all" | "expense" | "income"
+  >("all");
 
   const load = useCallback(async () => {
     const response = await fetch(`/api/v1/reports?month=${selectedMonth}`, {
@@ -74,6 +87,8 @@ export function MonthlyReportWorkspace() {
 
   function handleShiftMonth(offset: number) {
     setLoading(true);
+    setDrillCategory(null);
+    setDrillMerchant(null);
     const [yearStr, monthStr] = selectedMonth.split("-");
     const year = parseInt(yearStr!, 10);
     const month = parseInt(monthStr!, 10) - 1;
@@ -110,6 +125,32 @@ export function MonthlyReportWorkspace() {
     window.print();
   }
 
+  // Filtered Appendix Transactions
+  const filteredTransactions = useMemo(() => {
+    if (!report?.allTransactions) return [];
+    return report.allTransactions.filter((tx) => {
+      if (drillCategory && tx.categoryId !== drillCategory) return false;
+      if (drillMerchant && tx.merchant !== drillMerchant) return false;
+      if (appendixKind !== "all" && tx.kind !== appendixKind) return false;
+      if (appendixSearch.trim()) {
+        const query = appendixSearch.toLowerCase();
+        const m = (tx.merchant ?? "").toLowerCase();
+        const d = (tx.description ?? "").toLowerCase();
+        const c = tx.categoryName.toLowerCase();
+        if (!m.includes(query) && !d.includes(query) && !c.includes(query))
+          return false;
+      }
+      return true;
+    });
+  }, [report, drillCategory, drillMerchant, appendixKind, appendixSearch]);
+
+  const activeCategoryObject = useMemo(() => {
+    if (!drillCategory || !report) return null;
+    return report.categoryAnalysis.expenses.find(
+      (c) => c.categoryId === drillCategory,
+    );
+  }, [drillCategory, report]);
+
   return (
     <div className="feature-workspace monthly-report-page">
       {/* Top Banner / Controls */}
@@ -144,7 +185,12 @@ export function MonthlyReportWorkspace() {
                 className="month-native-input"
                 value={selectedMonth}
                 onChange={(e) => {
-                  if (e.target.value) setSelectedMonth(e.target.value);
+                  if (e.target.value) {
+                    setLoading(true);
+                    setDrillCategory(null);
+                    setDrillMerchant(null);
+                    setSelectedMonth(e.target.value);
+                  }
                 }}
               />
               <span className="month-display-name">
@@ -189,6 +235,33 @@ export function MonthlyReportWorkspace() {
         </div>
       </div>
 
+      {/* In-progress status pill */}
+      {report && (
+        <div className="period-status-banner">
+          <div className="period-status-content">
+            <Clock size={15} aria-hidden="true" />
+            <span>
+              {report.isCompletedMonth ? (
+                <>
+                  <strong>Closed Reporting Period:</strong> Full calendar month
+                  concluded ({report.daysInMonth} days).
+                </>
+              ) : (
+                <>
+                  <strong>Reporting Period In Progress:</strong>{" "}
+                  {report.daysElapsed} of {report.daysInMonth} calendar days
+                  recorded so far.
+                </>
+              )}
+            </span>
+          </div>
+          <span className="period-badge">
+            {report.totals.totalTransactionCount} recorded transaction
+            {report.totals.totalTransactionCount === 1 ? "" : "s"}
+          </span>
+        </div>
+      )}
+
       {error && (
         <p className="transaction-message error standalone" role="alert">
           {error}
@@ -224,7 +297,7 @@ export function MonthlyReportWorkspace() {
               <p className="summary-note">
                 {report.comparison.incomeDelta
                   ? `vs ${report.priorMonthLabel}: ${report.comparison.incomeDelta}`
-                  : "No prior month income"}
+                  : `${report.totals.incomeCount} income deposits`}
               </p>
             </article>
 
@@ -249,7 +322,7 @@ export function MonthlyReportWorkspace() {
               <p className="summary-note">
                 {report.comparison.expenseDelta
                   ? `vs ${report.priorMonthLabel}: ${report.comparison.expenseDelta}`
-                  : "No prior month expenses"}
+                  : `${report.totals.expenseCount} purchases`}
               </p>
             </article>
 
@@ -278,7 +351,7 @@ export function MonthlyReportWorkspace() {
               </p>
             </article>
 
-            {/* Savings Rate */}
+            {/* Savings Rate & Daily Average */}
             <article className="summary-card">
               <GlowingEffect
                 glow
@@ -295,11 +368,40 @@ export function MonthlyReportWorkspace() {
               </div>
               <p className="summary-value">{report.totals.savingsRate}%</p>
               <p className="summary-note">
-                {report.comparison.savingsRateDelta !== 0
-                  ? `${report.comparison.savingsRateDelta > 0 ? "+" : ""}${report.comparison.savingsRateDelta}% pts vs prior`
-                  : "Target benchmark: 20%+"}
+                Avg {formatMoney(report.totals.avgDailySpend, report.currency)}{" "}
+                / day
               </p>
             </article>
+          </div>
+
+          {/* Secondary Metrics Strip */}
+          <div className="secondary-metrics-strip">
+            <div className="sec-metric-item">
+              <span className="sec-metric-label">Average Expense Value</span>
+              <strong>
+                {formatMoney(report.totals.avgExpenseAmount, report.currency)}
+              </strong>
+            </div>
+            <div className="sec-metric-item">
+              <span className="sec-metric-label">Total Outflow Count</span>
+              <strong>{report.totals.expenseCount} transactions</strong>
+            </div>
+            <div className="sec-metric-item">
+              <span className="sec-metric-label">Peak Spending Day</span>
+              <strong>
+                {report.totals.highestSpendingDay
+                  ? `${report.totals.highestSpendingDay.date} (${formatMoney(report.totals.highestSpendingDay.amount, report.currency)})`
+                  : "No expense recorded"}
+              </strong>
+            </div>
+            <div className="sec-metric-item">
+              <span className="sec-metric-label">Top Expense Category</span>
+              <strong>
+                {report.categoryAnalysis.topExpenseCategory
+                  ? `${report.categoryAnalysis.topExpenseCategory.categoryName} (${report.categoryAnalysis.topExpenseCategory.percentageOfTotal}%)`
+                  : "None"}
+              </strong>
+            </div>
           </div>
 
           {/* 2. Key Intelligence Highlights */}
@@ -453,9 +555,8 @@ export function MonthlyReportWorkspace() {
             />
           </section>
 
-          {/* 5. Category Breakdown & Top Merchants */}
-          <div className="dashboard-panels report-double-panel">
-            {/* Category Breakdown */}
+          {/* 5. Weekly Spending Breakdown */}
+          {report.weeklyTotals.length > 0 && (
             <section className="panel-card">
               <GlowingEffect
                 glow
@@ -466,10 +567,36 @@ export function MonthlyReportWorkspace() {
               />
               <div className="section-heading compact">
                 <div>
-                  <h2>Category Analysis</h2>
+                  <h2>Weekly Outflow & Inflow Pacing</h2>
                   <p>
-                    Category allocations and shift versus{" "}
-                    {report.priorMonthLabel}.
+                    Distribution of spending and earnings across calendar weeks.
+                  </p>
+                </div>
+              </div>
+
+              <WeeklySpendChart
+                weeks={report.weeklyTotals}
+                currency={report.currency}
+              />
+            </section>
+          )}
+
+          {/* 6. Category Breakdown & Top Merchants */}
+          <div className="dashboard-panels report-double-panel">
+            {/* Category Breakdown with Drilldown */}
+            <section className="panel-card">
+              <GlowingEffect
+                glow
+                disabled={false}
+                spread={30}
+                proximity={56}
+                inactiveZone={0.12}
+              />
+              <div className="section-heading compact">
+                <div>
+                  <h2>Category Analysis & Drilldown</h2>
+                  <p>
+                    Click any category to filter the transaction appendix below.
                   </p>
                 </div>
               </div>
@@ -477,7 +604,10 @@ export function MonthlyReportWorkspace() {
               <CategoryBarChart
                 categories={report.categoryAnalysis.expenses}
                 currency={report.currency}
-                totalExpenses={report.totals.expenses}
+                selectedCategoryId={drillCategory}
+                onSelectCategory={(id) => {
+                  setDrillCategory((prev) => (prev === id ? null : id));
+                }}
               />
             </section>
 
@@ -493,7 +623,10 @@ export function MonthlyReportWorkspace() {
               <div className="section-heading compact">
                 <div>
                   <h2>Top Spending Destinations</h2>
-                  <p>Merchants and major single transactions.</p>
+                  <p>
+                    Click any merchant to drill into all purchases from that
+                    vendor.
+                  </p>
                 </div>
               </div>
 
@@ -503,26 +636,51 @@ export function MonthlyReportWorkspace() {
                     Highest Outflow Merchants
                   </h3>
                   <ul className="merchant-list">
-                    {report.merchantInsights.map((m) => (
-                      <li className="merchant-item" key={m.merchant}>
-                        <div className="merchant-name-col">
-                          <strong>{m.merchant}</strong>
-                          <span>
-                            {m.transactionCount} transaction
-                            {m.transactionCount > 1 ? "s" : ""}
-                          </span>
-                        </div>
-                        <div className="merchant-val-col">
-                          <strong>
-                            {formatMoney(m.totalSpent, report.currency)}
-                          </strong>
-                          <span>{m.percentageOfExpenses}% of spend</span>
-                        </div>
-                      </li>
-                    ))}
+                    {report.merchantInsights.map((m) => {
+                      const isSelected = drillMerchant === m.merchant;
+                      return (
+                        <li
+                          className={`merchant-item interactive ${isSelected ? "selected" : ""}`}
+                          key={m.merchant}
+                          onClick={() => {
+                            setDrillMerchant((prev) =>
+                              prev === m.merchant ? null : m.merchant,
+                            );
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          title="Click to drill down into this merchant's transactions"
+                        >
+                          <div className="merchant-name-col">
+                            <strong>{m.merchant}</strong>
+                            <span>
+                              {m.transactionCount} purchase
+                              {m.transactionCount > 1 ? "s" : ""} · Avg{" "}
+                              {formatMoney(
+                                m.avgTransactionAmount,
+                                report.currency,
+                              )}
+                            </span>
+                          </div>
+                          <div className="merchant-val-col">
+                            <strong>
+                              {formatMoney(m.totalSpent, report.currency)}
+                            </strong>
+                            <span>
+                              {m.percentageOfExpenses}% of spend{" "}
+                              {m.delta ? `(${m.delta})` : ""}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
-              ) : null}
+              ) : (
+                <div className="empty-copy">
+                  <p>No merchant information recorded for this period.</p>
+                </div>
+              )}
 
               {report.topTransactions.length > 0 ? (
                 <div className="top-tx-wrap">
@@ -550,7 +708,7 @@ export function MonthlyReportWorkspace() {
             </section>
           </div>
 
-          {/* 6. Budget & Goal Performance */}
+          {/* 7. Budget Performance */}
           {report.budgetPerformance.budgets.length > 0 && (
             <section className="panel-card">
               <GlowingEffect
@@ -598,6 +756,160 @@ export function MonthlyReportWorkspace() {
               </ul>
             </section>
           )}
+
+          {/* 8. Interactive Transaction Appendix */}
+          <section
+            className="panel-card appendix-panel"
+            id="transaction-appendix"
+          >
+            <GlowingEffect
+              glow
+              disabled={false}
+              spread={30}
+              proximity={56}
+              inactiveZone={0.12}
+            />
+            <div className="section-heading compact">
+              <div>
+                <h2>Transaction Appendix</h2>
+                <p>
+                  Every individual transaction recorded in {report.monthLabel}.
+                  Inspect, search, and verify the data behind the report.
+                </p>
+              </div>
+
+              {/* Active drilldown indicator */}
+              {(drillCategory || drillMerchant) && (
+                <div className="active-drilldown-chips">
+                  {drillCategory && activeCategoryObject && (
+                    <span className="drill-chip">
+                      Category: {activeCategoryObject.categoryName}
+                      <button
+                        type="button"
+                        onClick={() => setDrillCategory(null)}
+                        aria-label="Clear category filter"
+                      >
+                        <X size={13} />
+                      </button>
+                    </span>
+                  )}
+                  {drillMerchant && (
+                    <span className="drill-chip">
+                      Merchant: {drillMerchant}
+                      <button
+                        type="button"
+                        onClick={() => setDrillMerchant(null)}
+                        aria-label="Clear merchant filter"
+                      >
+                        <X size={13} />
+                      </button>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="clear-all-drills"
+                    onClick={() => {
+                      setDrillCategory(null);
+                      setDrillMerchant(null);
+                    }}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Search and Kind filters */}
+            <div className="appendix-controls">
+              <div className="appendix-search-wrap">
+                <Search size={15} aria-hidden="true" />
+                <input
+                  type="text"
+                  placeholder="Search merchant, description, category…"
+                  value={appendixSearch}
+                  onChange={(e) => setAppendixSearch(e.target.value)}
+                  className="appendix-search-input"
+                />
+              </div>
+
+              <div className="appendix-type-pills">
+                <button
+                  type="button"
+                  className={`appendix-type-btn ${appendixKind === "all" ? "active" : ""}`}
+                  onClick={() => setAppendixKind("all")}
+                >
+                  All ({report.allTransactions.length})
+                </button>
+                <button
+                  type="button"
+                  className={`appendix-type-btn ${appendixKind === "expense" ? "active" : ""}`}
+                  onClick={() => setAppendixKind("expense")}
+                >
+                  Expenses ({report.totals.expenseCount})
+                </button>
+                <button
+                  type="button"
+                  className={`appendix-type-btn ${appendixKind === "income" ? "active" : ""}`}
+                  onClick={() => setAppendixKind("income")}
+                >
+                  Income ({report.totals.incomeCount})
+                </button>
+              </div>
+            </div>
+
+            {/* Table */}
+            {filteredTransactions.length > 0 ? (
+              <div className="appendix-table-scroll">
+                <table className="appendix-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Date</th>
+                      <th scope="col">Type</th>
+                      <th scope="col">Category</th>
+                      <th scope="col">Merchant / Party</th>
+                      <th scope="col">Description</th>
+                      <th scope="col" className="text-right">
+                        Amount
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.map((tx) => (
+                      <tr key={tx.id}>
+                        <td className="tx-date-cell">{tx.occurredOn}</td>
+                        <td>
+                          <span
+                            className={`tx-kind-tag ${tx.kind === "income" ? "income" : "expense"}`}
+                          >
+                            {tx.kind}
+                          </span>
+                        </td>
+                        <td className="tx-cat-cell">
+                          <strong>{tx.categoryName}</strong>
+                        </td>
+                        <td>{tx.merchant || "—"}</td>
+                        <td className="tx-desc-cell">
+                          {tx.description || "—"}
+                        </td>
+                        <td
+                          className={`tx-amount-cell text-right ${
+                            tx.kind === "income" ? "income" : "expense"
+                          }`}
+                        >
+                          {tx.kind === "income" ? "+" : "−"}
+                          {formatMoney(tx.amount, report.currency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="empty-copy">
+                <p>No transactions match the selected filters.</p>
+              </div>
+            )}
+          </section>
 
           {/* Print Watermark / Footer */}
           <footer className="print-report-footer">

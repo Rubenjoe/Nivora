@@ -48,6 +48,10 @@ export type CategoryAnalysisItem = {
   currentAmount: string;
   priorAmount: string;
   percentageOfTotal: number;
+  transactionCount: number;
+  avgTransactionAmount: string;
+  budgetedAmount: string | null;
+  budgetStatus: "on_track" | "warning" | "over_budget" | null;
   delta: string | null;
   trend: "increased" | "decreased" | "stable" | "new";
 };
@@ -58,6 +62,16 @@ export type DailyVelocityItem = {
   currentDailySpend: string;
   currentCumulativeSpend: string;
   priorCumulativeSpend: string;
+};
+
+export type WeeklySpendItem = {
+  weekNumber: number;
+  label: string;
+  from: string;
+  to: string;
+  expenses: string;
+  income: string;
+  net: string;
 };
 
 export type BudgetReportItem = {
@@ -85,6 +99,7 @@ export type TopTransactionItem = {
   id: string;
   occurredOn: string;
   amount: string;
+  categoryId: string;
   categoryName: string;
   merchant: string | null;
   description: string | null;
@@ -94,6 +109,9 @@ export type TopMerchantItem = {
   merchant: string;
   totalSpent: string;
   transactionCount: number;
+  avgTransactionAmount: string;
+  priorTotalSpent: string;
+  delta: string | null;
   percentageOfExpenses: number;
 };
 
@@ -114,12 +132,28 @@ export type FinancialHealthReport = {
   };
 };
 
+export type ReportTransactionItem = {
+  id: string;
+  occurredOn: string;
+  kind: "income" | "expense";
+  amount: string;
+  currency: string;
+  categoryId: string;
+  categoryName: string;
+  categoryIcon: string;
+  merchant: string | null;
+  description: string | null;
+  createdAt: string;
+};
+
 export type MonthlyReportResult = {
   periodMonth: string; // "YYYY-MM"
   priorMonth: string; // "YYYY-MM"
   monthLabel: string; // e.g. "October 2026"
   priorMonthLabel: string; // e.g. "September 2026"
   currency: string;
+  isCompletedMonth: boolean;
+  daysElapsed: number;
   daysInMonth: number;
   totals: {
     income: string;
@@ -127,6 +161,12 @@ export type MonthlyReportResult = {
     net: string;
     savingsRate: number;
     avgDailySpend: string;
+    totalTransactionCount: number;
+    expenseCount: number;
+    incomeCount: number;
+    avgExpenseAmount: string;
+    avgIncomeAmount: string;
+    highestSpendingDay: { day: number; date: string; amount: string } | null;
   };
   priorTotals: {
     income: string;
@@ -134,6 +174,9 @@ export type MonthlyReportResult = {
     net: string;
     savingsRate: number;
     avgDailySpend: string;
+    totalTransactionCount: number;
+    expenseCount: number;
+    incomeCount: number;
   };
   comparison: {
     incomeDelta: string | null;
@@ -147,6 +190,7 @@ export type MonthlyReportResult = {
     income: CategoryAnalysisItem[];
     topExpenseCategory: CategoryAnalysisItem | null;
   };
+  weeklyTotals: WeeklySpendItem[];
   velocitySeries: DailyVelocityItem[];
   budgetPerformance: {
     budgets: BudgetReportItem[];
@@ -163,7 +207,31 @@ export type MonthlyReportResult = {
   merchantInsights: TopMerchantItem[];
   financialHealth: FinancialHealthReport;
   highlights: ReportHighlight[];
+  allTransactions: ReportTransactionItem[];
 };
+
+export function getLocalTodayISO(timeZone?: string | null): string {
+  if (timeZone) {
+    try {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(new Date());
+
+      const year = parts.find((p) => p.type === "year")?.value;
+      const month = parts.find((p) => p.type === "month")?.value;
+      const day = parts.find((p) => p.type === "day")?.value;
+      if (year && month && day) return `${year}-${month}-${day}`;
+    } catch {
+      // Fallback below
+    }
+  }
+  const date = new Date();
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
+}
 
 export function getMonthBounds(monthStr: string) {
   const [yearStr, monthNumStr] = monthStr.split("-");
@@ -214,6 +282,7 @@ export function generateMonthlyReport({
   budgets,
   goals,
   allGoalContributions,
+  timezone,
 }: {
   month: string; // "YYYY-MM"
   currency: string;
@@ -223,23 +292,42 @@ export function generateMonthlyReport({
   budgets: RawBudget[];
   goals: RawGoal[];
   allGoalContributions: RawContribution[];
+  timezone?: string | null;
 }): MonthlyReportResult {
   const bounds = getMonthBounds(month);
   const monthLabel = formatMonthLabel(month);
   const priorMonthLabel = formatMonthLabel(bounds.priorMonth);
 
-  // Category lookup
+  // Timezone-aware date calculations
+  const todayISO = getLocalTodayISO(timezone);
+  const currentMonthISO = todayISO.slice(0, 7);
+  const isCompletedMonth = month < currentMonthISO;
+  let daysElapsed = bounds.daysInMonth;
+  if (month === currentMonthISO) {
+    const todayDay = parseInt(todayISO.slice(8, 10), 10);
+    daysElapsed = Math.min(bounds.daysInMonth, Math.max(1, todayDay));
+  } else if (month > currentMonthISO) {
+    daysElapsed = 0;
+  }
+
+  // Category lookup map
   const categoryMap = new Map<string, RawCategory>();
   for (const cat of categories) {
     categoryMap.set(cat.id, cat);
   }
 
-  // 1. Current Month Totals
+  // 1. Current Month Totals & Metrics
   let currentIncome = new Decimal(0);
   let currentExpenses = new Decimal(0);
+  let currentExpenseCount = 0;
+  let currentIncomeCount = 0;
+
   const currentCategoryExpenses = new Map<string, Decimal>();
+  const currentCategoryExpenseCount = new Map<string, number>();
   const currentCategoryIncome = new Map<string, Decimal>();
+  const currentCategoryIncomeCount = new Map<string, number>();
   const dailySpendMap = new Map<number, Decimal>();
+  const dailyIncomeMap = new Map<number, Decimal>();
 
   for (const tx of currentTransactions) {
     if (tx.currency !== currency) continue;
@@ -248,14 +336,27 @@ export function generateMonthlyReport({
 
     if (tx.kind === "income") {
       currentIncome = currentIncome.plus(amount);
+      currentIncomeCount++;
+
       const priorCat =
         currentCategoryIncome.get(tx.categoryId) ?? new Decimal(0);
       currentCategoryIncome.set(tx.categoryId, priorCat.plus(amount));
+
+      const count = currentCategoryIncomeCount.get(tx.categoryId) ?? 0;
+      currentCategoryIncomeCount.set(tx.categoryId, count + 1);
+
+      const dayTotal = dailyIncomeMap.get(day) ?? new Decimal(0);
+      dailyIncomeMap.set(day, dayTotal.plus(amount));
     } else {
       currentExpenses = currentExpenses.plus(amount);
+      currentExpenseCount++;
+
       const priorCat =
         currentCategoryExpenses.get(tx.categoryId) ?? new Decimal(0);
       currentCategoryExpenses.set(tx.categoryId, priorCat.plus(amount));
+
+      const count = currentCategoryExpenseCount.get(tx.categoryId) ?? 0;
+      currentCategoryExpenseCount.set(tx.categoryId, count + 1);
 
       const dayTotal = dailySpendMap.get(day) ?? new Decimal(0);
       dailySpendMap.set(day, dayTotal.plus(amount));
@@ -272,14 +373,41 @@ export function generateMonthlyReport({
         ),
       )
     : 0;
-  const currentAvgDailySpend =
-    bounds.daysInMonth > 0
-      ? currentExpenses.div(bounds.daysInMonth).toFixed(2)
+
+  // Average daily spend: based on elapsed days for active month, total days for completed
+  const activeDivisor = Math.max(1, daysElapsed);
+  const currentAvgDailySpend = currentExpenses.div(activeDivisor).toFixed(2);
+  const currentAvgExpenseAmount =
+    currentExpenseCount > 0
+      ? currentExpenses.div(currentExpenseCount).toFixed(2)
       : "0.00";
+  const currentAvgIncomeAmount =
+    currentIncomeCount > 0
+      ? currentIncome.div(currentIncomeCount).toFixed(2)
+      : "0.00";
+
+  // Highest spending day
+  let highestSpendingDay: { day: number; date: string; amount: string } | null =
+    null;
+  let maxDayAmount = new Decimal(0);
+  for (const [day, amount] of dailySpendMap.entries()) {
+    if (amount.greaterThan(maxDayAmount)) {
+      maxDayAmount = amount;
+      const pad = (n: number) => String(n).padStart(2, "0");
+      highestSpendingDay = {
+        day,
+        date: `${month}-${pad(day)}`,
+        amount: amount.toFixed(2),
+      };
+    }
+  }
 
   // 2. Prior Month Totals
   let priorIncome = new Decimal(0);
   let priorExpenses = new Decimal(0);
+  let priorExpenseCount = 0;
+  let priorIncomeCount = 0;
+
   const priorCategoryExpenses = new Map<string, Decimal>();
   const priorCategoryIncome = new Map<string, Decimal>();
   const priorDailySpendMap = new Map<number, Decimal>();
@@ -291,10 +419,12 @@ export function generateMonthlyReport({
 
     if (tx.kind === "income") {
       priorIncome = priorIncome.plus(amount);
+      priorIncomeCount++;
       const priorCat = priorCategoryIncome.get(tx.categoryId) ?? new Decimal(0);
       priorCategoryIncome.set(tx.categoryId, priorCat.plus(amount));
     } else {
       priorExpenses = priorExpenses.plus(amount);
+      priorExpenseCount++;
       const priorCat =
         priorCategoryExpenses.get(tx.categoryId) ?? new Decimal(0);
       priorCategoryExpenses.set(tx.categoryId, priorCat.plus(amount));
@@ -334,9 +464,18 @@ export function generateMonthlyReport({
   );
   const expenseDifference = currentExpenses.minus(priorExpenses).toFixed(2);
 
-  // 4. Category Analysis (Expenses & Income)
+  // 4. Budget mapping for category analysis
+  const budgetByCategory = new Map<string, RawBudget>();
+  for (const b of budgets) {
+    if (b.categoryId) {
+      budgetByCategory.set(b.categoryId, b);
+    }
+  }
+
+  // 5. Category Analysis (Expenses & Income)
   const buildCategoryAnalysis = (
     currentMap: Map<string, Decimal>,
+    currentCountMap: Map<string, number>,
     priorMap: Map<string, Decimal>,
     totalAmount: Decimal,
   ): CategoryAnalysisItem[] => {
@@ -356,6 +495,10 @@ export function generateMonthlyReport({
         ? Number(cur.div(totalAmount).mul(100).toFixed(1))
         : 0;
 
+      const txCount = currentCountMap.get(catId) ?? 0;
+      const avgTxAmount =
+        txCount > 0 ? cur.div(txCount).toFixed(2) : cur.toFixed(2);
+
       const delta = formatPercentageDelta(cur.toFixed(2), pri.toFixed(2));
       let trend: "increased" | "decreased" | "stable" | "new" = "stable";
       if (pri.isZero()) {
@@ -366,6 +509,22 @@ export function generateMonthlyReport({
         trend = "decreased";
       }
 
+      // Budget status
+      let budgetedAmount: string | null = null;
+      let bStatus: "on_track" | "warning" | "over_budget" | null = null;
+      const associatedBudget = budgetByCategory.get(catId);
+      if (associatedBudget) {
+        budgetedAmount = associatedBudget.amount;
+        const bAmount = new Decimal(associatedBudget.amount);
+        if (bAmount.greaterThan(0)) {
+          const capPercent = cur.div(bAmount).mul(100).toNumber();
+          if (capPercent > 100) bStatus = "over_budget";
+          else if (capPercent >= associatedBudget.warningThresholdPercent)
+            bStatus = "warning";
+          else bStatus = "on_track";
+        }
+      }
+
       items.push({
         categoryId: catId,
         categoryName,
@@ -373,6 +532,10 @@ export function generateMonthlyReport({
         currentAmount: cur.toFixed(2),
         priorAmount: pri.toFixed(2),
         percentageOfTotal: pct,
+        transactionCount: txCount,
+        avgTransactionAmount: avgTxAmount,
+        budgetedAmount,
+        budgetStatus: bStatus,
         delta,
         trend,
       });
@@ -385,23 +548,62 @@ export function generateMonthlyReport({
 
   const expenseCategories = buildCategoryAnalysis(
     currentCategoryExpenses,
+    currentCategoryExpenseCount,
     priorCategoryExpenses,
     currentExpenses,
   );
   const incomeCategories = buildCategoryAnalysis(
     currentCategoryIncome,
+    currentCategoryIncomeCount,
     priorCategoryIncome,
     currentIncome,
   );
   const topExpenseCategory = expenseCategories[0] ?? null;
 
-  // 5. Daily Cumulative Velocity Curve
+  // 6. Weekly Spending Totals
+  const weeklyTotals: WeeklySpendItem[] = [];
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const weekDefinitions = [
+    { num: 1, startDay: 1, endDay: 7, label: "Week 1 (Days 1–7)" },
+    { num: 2, startDay: 8, endDay: 14, label: "Week 2 (Days 8–14)" },
+    { num: 3, startDay: 15, endDay: 21, label: "Week 3 (Days 15–21)" },
+    { num: 4, startDay: 22, endDay: 28, label: "Week 4 (Days 22–28)" },
+    {
+      num: 5,
+      startDay: 29,
+      endDay: bounds.daysInMonth,
+      label: `Week 5 (Days 29–${bounds.daysInMonth})`,
+    },
+  ];
+
+  for (const def of weekDefinitions) {
+    if (def.startDay > bounds.daysInMonth) continue;
+    const actualEnd = Math.min(def.endDay, bounds.daysInMonth);
+    let weekExp = new Decimal(0);
+    let weekInc = new Decimal(0);
+
+    for (let d = def.startDay; d <= actualEnd; d++) {
+      weekExp = weekExp.plus(dailySpendMap.get(d) ?? new Decimal(0));
+      weekInc = weekInc.plus(dailyIncomeMap.get(d) ?? new Decimal(0));
+    }
+
+    weeklyTotals.push({
+      weekNumber: def.num,
+      label: def.label,
+      from: `${month}-${pad(def.startDay)}`,
+      to: `${month}-${pad(actualEnd)}`,
+      expenses: weekExp.toFixed(2),
+      income: weekInc.toFixed(2),
+      net: weekInc.minus(weekExp).toFixed(2),
+    });
+  }
+
+  // 7. Daily Cumulative Velocity Curve
   const velocitySeries: DailyVelocityItem[] = [];
   let cumSpend = new Decimal(0);
   let priorCumSpend = new Decimal(0);
 
   for (let d = 1; d <= bounds.daysInMonth; d++) {
-    const pad = (n: number) => String(n).padStart(2, "0");
     const dateStr = `${month}-${pad(d)}`;
     const daily = dailySpendMap.get(d) ?? new Decimal(0);
     cumSpend = cumSpend.plus(daily);
@@ -418,7 +620,7 @@ export function generateMonthlyReport({
     });
   }
 
-  // 6. Budget Performance
+  // 8. Budget Performance
   let totalBudgeted = new Decimal(0);
   let totalBudgetSpent = new Decimal(0);
   let overBudgetCount = 0;
@@ -468,7 +670,7 @@ export function generateMonthlyReport({
       ? Math.round(((budgets.length - overBudgetCount) / budgets.length) * 100)
       : 100;
 
-  // 7. Savings Goals Progress
+  // 9. Savings Goals Progress
   let totalContributedInMonth = new Decimal(0);
   const goalContributionThisMonth = new Map<string, Decimal>();
   const goalContributionTotal = new Map<string, Decimal>();
@@ -506,7 +708,7 @@ export function generateMonthlyReport({
     };
   });
 
-  // 8. Top 5 Transactions
+  // 10. Top 5 Largest Expenses
   const topTransactions: TopTransactionItem[] = currentTransactions
     .filter((tx) => tx.kind === "expense" && tx.currency === currency)
     .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount))
@@ -515,54 +717,104 @@ export function generateMonthlyReport({
       id: tx.id,
       occurredOn: tx.occurredOn,
       amount: new Decimal(tx.amount).toFixed(2),
+      categoryId: tx.categoryId,
       categoryName: categoryMap.get(tx.categoryId)?.name ?? "Expense",
       merchant: tx.merchant,
       description: tx.description,
     }));
 
-  // 9. Merchant Insights (Top 5 merchants)
-  const merchantMap = new Map<string, { total: Decimal; count: number }>();
+  // 11. Merchant Analysis (Top spending and frequency)
+  const currentMerchantMap = new Map<
+    string,
+    { total: Decimal; count: number }
+  >();
   for (const tx of currentTransactions) {
     if (tx.kind === "expense" && tx.currency === currency && tx.merchant) {
       const cleanMerchant = tx.merchant.trim();
       if (!cleanMerchant) continue;
       const amt = new Decimal(tx.amount);
-      const existing = merchantMap.get(cleanMerchant) ?? {
+      const existing = currentMerchantMap.get(cleanMerchant) ?? {
         total: new Decimal(0),
         count: 0,
       };
-      merchantMap.set(cleanMerchant, {
+      currentMerchantMap.set(cleanMerchant, {
         total: existing.total.plus(amt),
         count: existing.count + 1,
       });
     }
   }
 
-  const merchantInsights: TopMerchantItem[] = [...merchantMap.entries()]
-    .map(([merchant, stat]) => ({
-      merchant,
-      totalSpent: stat.total.toFixed(2),
-      transactionCount: stat.count,
-      percentageOfExpenses: currentExpenses.greaterThan(0)
-        ? Number(stat.total.div(currentExpenses).mul(100).toFixed(1))
-        : 0,
-    }))
-    .sort((a, b) => parseFloat(b.totalSpent) - parseFloat(a.totalSpent))
-    .slice(0, 5);
+  const priorMerchantMap = new Map<string, Decimal>();
+  for (const tx of priorTransactions) {
+    if (tx.kind === "expense" && tx.currency === currency && tx.merchant) {
+      const cleanMerchant = tx.merchant.trim();
+      if (!cleanMerchant) continue;
+      const amt = new Decimal(tx.amount);
+      const cur = priorMerchantMap.get(cleanMerchant) ?? new Decimal(0);
+      priorMerchantMap.set(cleanMerchant, cur.plus(amt));
+    }
+  }
 
-  // 10. Financial Health Score (0 - 100)
-  // Savings Rate: up to 40 points (40 if >= 30%, linear below)
+  const merchantInsights: TopMerchantItem[] = [...currentMerchantMap.entries()]
+    .map(([merchant, stat]) => {
+      const priorAmt = priorMerchantMap.get(merchant) ?? new Decimal(0);
+      const delta = formatPercentageDelta(
+        stat.total.toFixed(2),
+        priorAmt.toFixed(2),
+      );
+      const avg =
+        stat.count > 0
+          ? stat.total.div(stat.count).toFixed(2)
+          : stat.total.toFixed(2);
+      return {
+        merchant,
+        totalSpent: stat.total.toFixed(2),
+        transactionCount: stat.count,
+        avgTransactionAmount: avg,
+        priorTotalSpent: priorAmt.toFixed(2),
+        delta,
+        percentageOfExpenses: currentExpenses.greaterThan(0)
+          ? Number(stat.total.div(currentExpenses).mul(100).toFixed(1))
+          : 0,
+      };
+    })
+    .sort((a, b) => parseFloat(b.totalSpent) - parseFloat(a.totalSpent))
+    .slice(0, 8);
+
+  // 12. Full Transaction Appendix (formatted for UI and CSV)
+  const allTransactions: ReportTransactionItem[] = currentTransactions
+    .filter((tx) => tx.currency === currency)
+    .sort((a, b) => {
+      const dateCmp = b.occurredOn.localeCompare(a.occurredOn);
+      if (dateCmp !== 0) return dateCmp;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    })
+    .map((tx) => {
+      const cat = categoryMap.get(tx.categoryId);
+      return {
+        id: tx.id,
+        occurredOn: tx.occurredOn,
+        kind: tx.kind,
+        amount: new Decimal(tx.amount).toFixed(2),
+        currency: tx.currency,
+        categoryId: tx.categoryId,
+        categoryName: cat?.name ?? "General",
+        categoryIcon: cat?.icon ?? "circle-help",
+        merchant: tx.merchant,
+        description: tx.description,
+        createdAt: tx.createdAt.toISOString(),
+      };
+    });
+
+  // 13. Financial Health Score (0 - 100)
   const savingsRateScore = Math.min(
     40,
     Math.round((Math.max(0, currentSavingsRate) / 30) * 40),
   );
 
-  // Budget Score: up to 30 points based on adherence
   const budgetScore =
-    budgets.length > 0 ? Math.round((adherenceRate / 100) * 30) : 25; // default 25 if no budgets set
+    budgets.length > 0 ? Math.round((adherenceRate / 100) * 30) : 25;
 
-  // Spend Discipline Score: up to 20 points
-  // If expenses decreased or increased <= 5% compared to prior, full marks
   let spendDisciplineScore = 15;
   if (priorExpenses.greaterThan(0)) {
     const expenseRatio = currentExpenses.div(priorExpenses).toNumber();
@@ -577,7 +829,6 @@ export function generateMonthlyReport({
     }
   }
 
-  // Goals Score: up to 10 points
   const goalsScore = totalContributedInMonth.greaterThan(0) ? 10 : 5;
 
   const totalScore = Math.min(
@@ -606,10 +857,19 @@ export function generateMonthlyReport({
     },
   };
 
-  // 11. Automated Smart Insights & Highlights
+  // 14. Automated Smart Insights & Highlights
   const highlights: ReportHighlight[] = [];
 
-  // Highlight 1: Savings rate
+  // Month status highlight
+  if (!isCompletedMonth) {
+    highlights.push({
+      type: "info",
+      title: "Reporting Period In Progress",
+      description: `${daysElapsed} of ${bounds.daysInMonth} days elapsed. Projections and totals will refine as the month progresses.`,
+    });
+  }
+
+  // Savings rate
   if (currentSavingsRate >= 20) {
     highlights.push({
       type: "positive",
@@ -630,7 +890,7 @@ export function generateMonthlyReport({
     });
   }
 
-  // Highlight 2: Expense variance vs prior month
+  // Expense variance vs prior month
   if (priorExpenses.greaterThan(0)) {
     const diff = currentExpenses.minus(priorExpenses);
     if (diff.isNegative()) {
@@ -648,16 +908,16 @@ export function generateMonthlyReport({
     }
   }
 
-  // Highlight 3: Dominant spending category
+  // Dominant spending category
   if (topExpenseCategory && parseFloat(topExpenseCategory.currentAmount) > 0) {
     highlights.push({
       type: "info",
       title: `Top Category: ${topExpenseCategory.categoryName}`,
-      description: `${topExpenseCategory.categoryName} represented ${topExpenseCategory.percentageOfTotal}% of total expenses (${topExpenseCategory.currentAmount} ${currency}).`,
+      description: `${topExpenseCategory.categoryName} represented ${topExpenseCategory.percentageOfTotal}% of total expenses (${topExpenseCategory.currentAmount} ${currency}) across ${topExpenseCategory.transactionCount} transaction${topExpenseCategory.transactionCount > 1 ? "s" : ""}.`,
     });
   }
 
-  // Highlight 4: Budgets
+  // Budgets
   if (budgets.length > 0) {
     if (overBudgetCount === 0) {
       highlights.push({
@@ -674,7 +934,7 @@ export function generateMonthlyReport({
     }
   }
 
-  // Highlight 5: Goals contribution
+  // Goal contributions
   if (totalContributedInMonth.greaterThan(0)) {
     highlights.push({
       type: "positive",
@@ -689,6 +949,8 @@ export function generateMonthlyReport({
     monthLabel,
     priorMonthLabel,
     currency,
+    isCompletedMonth,
+    daysElapsed,
     daysInMonth: bounds.daysInMonth,
     totals: {
       income: currentIncome.toFixed(2),
@@ -696,6 +958,12 @@ export function generateMonthlyReport({
       net: currentNet.toFixed(2),
       savingsRate: currentSavingsRate,
       avgDailySpend: currentAvgDailySpend,
+      totalTransactionCount: currentExpenseCount + currentIncomeCount,
+      expenseCount: currentExpenseCount,
+      incomeCount: currentIncomeCount,
+      avgExpenseAmount: currentAvgExpenseAmount,
+      avgIncomeAmount: currentAvgIncomeAmount,
+      highestSpendingDay,
     },
     priorTotals: {
       income: priorIncome.toFixed(2),
@@ -703,6 +971,9 @@ export function generateMonthlyReport({
       net: priorNet.toFixed(2),
       savingsRate: priorSavingsRate,
       avgDailySpend: priorAvgDailySpend,
+      totalTransactionCount: priorExpenseCount + priorIncomeCount,
+      expenseCount: priorExpenseCount,
+      incomeCount: priorIncomeCount,
     },
     comparison: {
       incomeDelta,
@@ -716,6 +987,7 @@ export function generateMonthlyReport({
       income: incomeCategories,
       topExpenseCategory,
     },
+    weeklyTotals,
     velocitySeries,
     budgetPerformance: {
       budgets: budgetItems,
@@ -732,5 +1004,6 @@ export function generateMonthlyReport({
     merchantInsights,
     financialHealth,
     highlights,
+    allTransactions,
   };
 }

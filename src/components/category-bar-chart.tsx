@@ -1,6 +1,5 @@
 "use client";
 
-import Decimal from "decimal.js";
 import { formatMoney } from "@/lib/finance/money-format";
 import { assignCategoryColors } from "@/lib/finance/category-colors";
 import type { CategoryAnalysisItem } from "@/lib/finance/monthly-report";
@@ -8,11 +7,13 @@ import type { CategoryAnalysisItem } from "@/lib/finance/monthly-report";
 export function CategoryBarChart({
   categories,
   currency,
-  totalExpenses,
+  selectedCategoryId,
+  onSelectCategory,
 }: {
   categories: CategoryAnalysisItem[];
   currency: string;
-  totalExpenses: string;
+  selectedCategoryId?: string | null;
+  onSelectCategory?: (categoryId: string) => void;
 }) {
   const categoryNames = categories.map((c) => c.categoryName);
   const colors = assignCategoryColors(categoryNames);
@@ -42,9 +43,23 @@ export function CategoryBarChart({
           const priorWidth =
             maxCategorySpend > 0 ? (priVal / maxCategorySpend) * 100 : 0;
           const catColor = colors[cat.categoryName] ?? "var(--chart-cat-1)";
+          const isSelected = selectedCategoryId === cat.categoryId;
 
           return (
-            <li className="category-bar-item" key={cat.categoryId}>
+            <li
+              className={`category-bar-item interactive ${isSelected ? "selected" : ""}`}
+              key={cat.categoryId}
+              onClick={() => onSelectCategory?.(cat.categoryId)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectCategory?.(cat.categoryId);
+                }
+              }}
+              title="Click to drill down into underlying transactions"
+            >
               <div className="category-bar-header">
                 <div className="category-bar-identity">
                   <span
@@ -55,6 +70,10 @@ export function CategoryBarChart({
                   <strong className="category-bar-title">
                     {cat.categoryName}
                   </strong>
+                  <span className="category-bar-count">
+                    ({cat.transactionCount} txn
+                    {cat.transactionCount > 1 ? "s" : ""})
+                  </span>
                 </div>
 
                 <div className="category-bar-numbers">
@@ -105,15 +124,27 @@ export function CategoryBarChart({
                   {priVal > 0
                     ? `Prior: ${formatMoney(cat.priorAmount, currency)}`
                     : "No prior spend"}
+                  {cat.transactionCount > 0 && (
+                    <span className="cat-avg-tag">
+                      {" "}
+                      · Avg {formatMoney(cat.avgTransactionAmount, currency)}
+                    </span>
+                  )}
                 </span>
                 <span className="category-bar-trend-tag">
-                  {cat.trend === "decreased"
-                    ? "↓ Reduced"
-                    : cat.trend === "increased"
-                      ? "↑ Rose"
-                      : cat.trend === "new"
-                        ? "★ New"
-                        : "→ Steady"}
+                  {cat.budgetStatus === "over_budget" ? (
+                    <span className="badge-overbudget">Over Budget</span>
+                  ) : cat.budgetStatus === "warning" ? (
+                    <span className="badge-warning">Near Budget</span>
+                  ) : cat.trend === "decreased" ? (
+                    "↓ Reduced"
+                  ) : cat.trend === "increased" ? (
+                    "↑ Rose"
+                  ) : cat.trend === "new" ? (
+                    "★ New"
+                  ) : (
+                    "→ Steady"
+                  )}
                 </span>
               </div>
             </li>

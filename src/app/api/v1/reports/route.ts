@@ -24,16 +24,20 @@ const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 function buildReportCsv(report: MonthlyReportResult): string {
   const lines: string[] = [];
 
-  // 1. Overview
+  // 1. Overview & Period Metadata
   lines.push("--- MONTHLY MONEY REVIEW ---");
   lines.push(`Period,${report.monthLabel} (${report.periodMonth})`);
+  lines.push(
+    `Status,${report.isCompletedMonth ? "Completed Period" : `In Progress (${report.daysElapsed}/${report.daysInMonth} days)`}`,
+  );
   lines.push(`Currency,${report.currency}`);
   lines.push(
     `Financial Health Score,${report.financialHealth.score}/100 (${report.financialHealth.rating})`,
   );
   lines.push("");
 
-  lines.push("--- SUMMARY TOTALS ---");
+  // 2. Summary Totals & Operational Metrics
+  lines.push("--- SUMMARY METRICS ---");
   const summaryHeaders = [
     "Metric",
     "Current Month",
@@ -81,32 +85,101 @@ function buildReportCsv(report: MonthlyReportResult): string {
       "",
       "",
     ],
+    ["Avg Expense Amount", report.totals.avgExpenseAmount, "", "", ""],
+    [
+      "Expense Transaction Count",
+      String(report.totals.expenseCount),
+      String(report.priorTotals.expenseCount),
+      "",
+      "",
+    ],
+    [
+      "Highest Spending Day",
+      report.totals.highestSpendingDay
+        ? `${report.totals.highestSpendingDay.date} (${report.totals.highestSpendingDay.amount})`
+        : "None",
+      "",
+      "",
+      "",
+    ],
   ];
   lines.push(buildCsv(summaryHeaders, summaryRows));
   lines.push("");
 
-  // 2. Category Breakdown
+  // 3. Category Breakdown
   lines.push("--- CATEGORY BREAKDOWN ---");
   const catHeaders = [
     "Category",
     "Spent",
     "% of Total",
+    "Transactions",
+    "Avg Transaction",
     "Prior Spent",
     "Change",
+    "Budget Status",
     "Trend",
   ];
   const catRows = report.categoryAnalysis.expenses.map((c) => [
     c.categoryName,
     c.currentAmount,
     `${c.percentageOfTotal}%`,
+    String(c.transactionCount),
+    c.avgTransactionAmount,
     c.priorAmount,
     c.delta ?? "N/A",
+    c.budgetStatus ?? "No Budget",
     c.trend,
   ]);
   lines.push(buildCsv(catHeaders, catRows));
   lines.push("");
 
-  // 3. Budgets
+  // 4. Merchant Breakdown
+  if (report.merchantInsights.length > 0) {
+    lines.push("--- MERCHANT SPENDING ---");
+    const merchantHeaders = [
+      "Merchant",
+      "Total Spent",
+      "Transactions",
+      "Avg Transaction",
+      "% of Expenses",
+      "Prior Spent",
+      "Change",
+    ];
+    const merchantRows = report.merchantInsights.map((m) => [
+      m.merchant,
+      m.totalSpent,
+      String(m.transactionCount),
+      m.avgTransactionAmount,
+      `${m.percentageOfExpenses}%`,
+      m.priorTotalSpent,
+      m.delta ?? "N/A",
+    ]);
+    lines.push(buildCsv(merchantHeaders, merchantRows));
+    lines.push("");
+  }
+
+  // 5. Weekly Spending Totals
+  if (report.weeklyTotals.length > 0) {
+    lines.push("--- WEEKLY SPEND BREAKDOWN ---");
+    const weeklyHeaders = [
+      "Week",
+      "Date Range",
+      "Expenses",
+      "Income",
+      "Net Cash Flow",
+    ];
+    const weeklyRows = report.weeklyTotals.map((w) => [
+      w.label,
+      `${w.from} to ${w.to}`,
+      w.expenses,
+      w.income,
+      w.net,
+    ]);
+    lines.push(buildCsv(weeklyHeaders, weeklyRows));
+    lines.push("");
+  }
+
+  // 6. Budgets
   if (report.budgetPerformance.budgets.length > 0) {
     lines.push("--- BUDGET PERFORMANCE ---");
     const budgetHeaders = [
@@ -131,24 +204,28 @@ function buildReportCsv(report: MonthlyReportResult): string {
     lines.push("");
   }
 
-  // 4. Top Transactions
-  if (report.topTransactions.length > 0) {
-    lines.push("--- TOP EXPENSES ---");
-    const topHeaders = [
+  // 7. Transaction Appendix
+  if (report.allTransactions.length > 0) {
+    lines.push("--- TRANSACTION APPENDIX ---");
+    const txHeaders = [
       "Date",
+      "Type",
       "Category",
       "Merchant",
       "Description",
       "Amount",
+      "Currency",
     ];
-    const topRows = report.topTransactions.map((tx) => [
+    const txRows = report.allTransactions.map((tx) => [
       tx.occurredOn,
+      tx.kind,
       tx.categoryName,
       tx.merchant ?? "",
       tx.description ?? "",
       tx.amount,
+      tx.currency,
     ]);
-    lines.push(buildCsv(topHeaders, topRows));
+    lines.push(buildCsv(txHeaders, txRows));
   }
 
   return lines.join("\r\n");
@@ -182,7 +259,7 @@ export async function GET(request: Request) {
     const scopedProfile = eq(transactions.profileId, current.profile.id);
     const scopedCurrency = eq(transactions.currency, current.profile.currency);
 
-    // Run parallel profile-scoped queries
+    // Parallel profile-scoped database queries
     const [
       currentTxRows,
       priorTxRows,
@@ -303,6 +380,7 @@ export async function GET(request: Request) {
       budgets: budgetRows,
       goals: goalRows,
       allGoalContributions: contributionRows,
+      timezone: current.profile.timezone,
     });
 
     if (format === "csv") {

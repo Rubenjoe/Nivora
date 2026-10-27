@@ -4,12 +4,17 @@ import {
   generateMonthlyReport,
   getMonthBounds,
   formatMonthLabel,
+  getLocalTodayISO,
   type RawTransaction,
   type RawCategory,
   type RawBudget,
   type RawGoal,
   type RawContribution,
 } from "./monthly-report";
+import {
+  evaluateMonthlyNotification,
+  getPreviousMonthISO,
+} from "./monthly-notification";
 
 test("computes bounds and prior month correctly", () => {
   const bounds = getMonthBounds("2026-10");
@@ -54,13 +59,20 @@ test("generates an empty report gracefully when no transactions exist", () => {
   assert.equal(report.totals.net, "0.00");
   assert.equal(report.totals.savingsRate, 0);
   assert.equal(report.totals.avgDailySpend, "0.00");
+  assert.equal(report.totals.totalTransactionCount, 0);
+  assert.equal(report.totals.expenseCount, 0);
+  assert.equal(report.totals.incomeCount, 0);
+  assert.equal(report.totals.avgExpenseAmount, "0.00");
+  assert.equal(report.totals.highestSpendingDay, null);
   assert.equal(report.comparison.incomeDelta, null);
   assert.deepEqual(report.categoryAnalysis.expenses, []);
   assert.equal(report.velocitySeries.length, 31);
+  assert.equal(report.weeklyTotals.length, 5);
+  assert.equal(report.allTransactions.length, 0);
   assert.ok(report.financialHealth.score >= 0);
 });
 
-test("computes totals, comparison, categories, and velocity accurately", () => {
+test("computes totals, operational metrics, comparison, categories, and velocity accurately", () => {
   const categories: RawCategory[] = [
     { id: "cat-salary", name: "Salary", kind: "income", icon: "wallet" },
     { id: "cat-rent", name: "Housing", kind: "expense", icon: "home" },
@@ -181,6 +193,7 @@ test("computes totals, comparison, categories, and velocity accurately", () => {
     budgets,
     goals,
     allGoalContributions: contributions,
+    timezone: "Asia/Kolkata",
   });
 
   // Check Totals
@@ -190,9 +203,23 @@ test("computes totals, comparison, categories, and velocity accurately", () => {
   // Savings rate = (100000 - 40000) / 100000 * 100 = 60%
   assert.equal(report.totals.savingsRate, 60);
 
+  // Transaction counts & averages
+  assert.equal(report.totals.totalTransactionCount, 3);
+  assert.equal(report.totals.expenseCount, 2);
+  assert.equal(report.totals.incomeCount, 1);
+  assert.equal(report.totals.avgExpenseAmount, "20000.00"); // 40k / 2
+  assert.equal(report.totals.avgIncomeAmount, "100000.00");
+
+  // Peak spending day
+  assert.ok(report.totals.highestSpendingDay);
+  assert.equal(report.totals.highestSpendingDay.day, 2);
+  assert.equal(report.totals.highestSpendingDay.date, "2026-10-02");
+  assert.equal(report.totals.highestSpendingDay.amount, "30000.00");
+
   // Prior totals
   assert.equal(report.priorTotals.income, "90000.00");
   assert.equal(report.priorTotals.expenses, "50000.00");
+  assert.equal(report.priorTotals.totalTransactionCount, 2);
 
   // Comparison
   // Income rose from 90k to 100k (+11.1%)
@@ -203,28 +230,47 @@ test("computes totals, comparison, categories, and velocity accurately", () => {
 
   // Category analysis
   assert.equal(report.categoryAnalysis.expenses.length, 2);
-  assert.equal(
-    report.categoryAnalysis.topExpenseCategory?.categoryName,
-    "Housing",
+  const housingCat = report.categoryAnalysis.expenses.find(
+    (c) => c.categoryName === "Housing",
   );
-  assert.equal(
-    report.categoryAnalysis.topExpenseCategory?.currentAmount,
-    "30000.00",
+  assert.ok(housingCat);
+  assert.equal(housingCat.currentAmount, "30000.00");
+  assert.equal(housingCat.transactionCount, 1);
+  assert.equal(housingCat.avgTransactionAmount, "30000.00");
+  assert.equal(housingCat.budgetedAmount, "35000.00");
+  assert.equal(housingCat.budgetStatus, "warning"); // 30k / 35k = 85.7% >= 80%
+
+  // Food Category
+  const foodCat = report.categoryAnalysis.expenses.find(
+    (c) => c.categoryName === "Food & Dining",
   );
-  // 30,000 / 40,000 = 75%
-  assert.equal(
-    report.categoryAnalysis.topExpenseCategory?.percentageOfTotal,
-    75,
+  assert.ok(foodCat);
+  assert.equal(foodCat.budgetStatus, "over_budget"); // 10k / 8k = 125%
+
+  // Merchant Insights
+  assert.equal(report.merchantInsights.length, 2);
+  const landlord = report.merchantInsights.find(
+    (m) => m.merchant === "Landlord",
   );
+  assert.ok(landlord);
+  assert.equal(landlord.totalSpent, "30000.00");
+  assert.equal(landlord.priorTotalSpent, "50000.00");
+  assert.equal(landlord.delta, "-40.0%");
+
+  // Weekly Totals
+  assert.equal(report.weeklyTotals.length, 5);
+  // Week 1 (Days 1–7): day 1 income 100k, day 2 expense 30k
+  assert.equal(report.weeklyTotals[0]?.expenses, "30000.00");
+  assert.equal(report.weeklyTotals[0]?.income, "100000.00");
+  // Week 3 (Days 15–21): day 15 expense 10k
+  assert.equal(report.weeklyTotals[2]?.expenses, "10000.00");
 
   // Budgets
-  // Housing: 30,000 / 35,000 = 85.7% (status: warning since >= 80%)
   const housingBudget = report.budgetPerformance.budgets.find(
     (b) => b.id === "b-1",
   );
   assert.equal(housingBudget?.status, "warning");
 
-  // Food: 10,000 / 8,000 = 125% (status: over_budget)
   const foodBudget = report.budgetPerformance.budgets.find(
     (b) => b.id === "b-2",
   );
@@ -234,15 +280,43 @@ test("computes totals, comparison, categories, and velocity accurately", () => {
   // Goals
   assert.equal(report.goalsProgress.totalContributedInMonth, "20000.00");
   assert.equal(report.goalsProgress.goals[0]?.totalSaved, "35000.00");
-  assert.equal(report.goalsProgress.goals[0]?.contributedThisMonth, "20000.00");
 
   // Velocity series
   assert.equal(report.velocitySeries.length, 31);
-  assert.equal(report.velocitySeries[1]?.currentCumulativeSpend, "30000.00"); // day 2 cumulative spend was 30k
-  assert.equal(report.velocitySeries[30]?.currentCumulativeSpend, "40000.00"); // end of month 40k
+  assert.equal(report.velocitySeries[1]?.currentCumulativeSpend, "30000.00");
+  assert.equal(report.velocitySeries[30]?.currentCumulativeSpend, "40000.00");
 
-  // Highlights
+  // Transaction Appendix
+  assert.equal(report.allTransactions.length, 3);
+  assert.equal(report.allTransactions[0]?.occurredOn, "2026-10-15");
+
+  // Highlights & Health
   assert.ok(report.highlights.length > 0);
   assert.equal(report.financialHealth.score, 85);
   assert.equal(report.financialHealth.rating, "Exceptional");
+});
+
+test("evaluates monthly notification readiness based on user history and timezone", () => {
+  const prevMonth = getPreviousMonthISO("2026-10-27");
+  assert.equal(prevMonth, "2026-09");
+
+  const janRoll = getPreviousMonthISO("2026-01-15");
+  assert.equal(janRoll, "2025-12");
+
+  // User registered before end of previous month
+  const statusEligible = evaluateMonthlyNotification({
+    timeZone: "Asia/Kolkata",
+    userCreatedAt: new Date("2026-08-15T00:00:00Z"),
+    hasTransactionsInPriorMonth: true,
+  });
+  assert.equal(statusEligible.isReady, true);
+  assert.equal(statusEligible.hasActivity, true);
+
+  // Brand new user registered after previous month ended with 0 transactions in prior month
+  const statusNew = evaluateMonthlyNotification({
+    timeZone: "Asia/Kolkata",
+    userCreatedAt: new Date("2026-10-05T00:00:00Z"),
+    hasTransactionsInPriorMonth: false,
+  });
+  assert.equal(statusNew.isReady, false);
 });

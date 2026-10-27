@@ -9,6 +9,8 @@ import {
   Plus,
   Wallet,
   PieChart,
+  Sparkles,
+  X,
 } from "lucide-react";
 import { CashFlowChart } from "@/components/cash-flow-chart";
 import { DashboardGreeting } from "@/components/dashboard-greeting";
@@ -170,6 +172,43 @@ export function DashboardOverview({
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [period, setPeriod] = useState<DashboardRange>("this-month");
   const [loading, setLoading] = useState(true);
+  const [reviewNotification, setReviewNotification] = useState<{
+    isReady: boolean;
+    previousMonth: string;
+    previousMonthLabel: string;
+  } | null>(null);
+  const [reviewDismissed, setReviewDismissed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/v1/reports/status")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data?.isReady) return;
+        const dismissedKey = `nivora-dismissed-review-${data.previousMonth}`;
+        if (
+          typeof window !== "undefined" &&
+          localStorage.getItem(dismissedKey) === "true"
+        ) {
+          setReviewDismissed(true);
+        }
+        setReviewNotification(data);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function dismissReviewBanner() {
+    if (reviewNotification && typeof window !== "undefined") {
+      localStorage.setItem(
+        `nivora-dismissed-review-${reviewNotification.previousMonth}`,
+        "true",
+      );
+    }
+    setReviewDismissed(true);
+  }
 
   useEffect(() => {
     let active = true;
@@ -251,6 +290,41 @@ export function DashboardOverview({
           </Link>
         </div>
       </div>
+
+      {/* In-App Notification: Previous Month Money Review Ready */}
+      {reviewNotification?.isReady && !reviewDismissed && (
+        <aside className="monthly-review-banner" role="status">
+          <div className="banner-content">
+            <Sparkles size={16} className="gold-icon" aria-hidden="true" />
+            <div>
+              <strong>
+                Your {reviewNotification.previousMonthLabel} Money Review is
+                ready
+              </strong>
+              <p>
+                Review spending velocity, category shifts, and your monthly
+                health score.
+              </p>
+            </div>
+          </div>
+          <div className="banner-actions">
+            <Link
+              href={`/reports?month=${reviewNotification.previousMonth}`}
+              className="banner-primary-btn"
+            >
+              View Review
+            </Link>
+            <button
+              type="button"
+              onClick={dismissReviewBanner}
+              className="banner-dismiss-btn"
+              aria-label="Dismiss notification"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </aside>
+      )}
 
       <div className="premium-summary-grid" aria-label="Financial summary">
         {[
