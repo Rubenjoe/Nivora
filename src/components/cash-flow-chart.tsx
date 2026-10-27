@@ -342,7 +342,9 @@ export function CashFlowChart({
               x={paddingLeft - 9}
               y={label.y + 4}
               textAnchor="end"
-              fontWeight={index === 0 ? 600 : 400}
+              fill="var(--color-text, #f3f2f7)"
+              fontSize={11}
+              fontWeight={index === 0 ? 600 : 500}
             >
               {formatMoney(label.value, currency, {
                 minimumFractionDigits: 0,
@@ -394,6 +396,9 @@ export function CashFlowChart({
                         : "middle"
                   }
                   className="premium-chart-date"
+                  fill="var(--color-text, #f3f2f7)"
+                  fontSize={11}
+                  fontWeight={500}
                 >
                   {point.label}
                 </text>

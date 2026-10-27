@@ -39,6 +39,7 @@ export async function updateSession(request: NextRequest) {
     "/transactions",
     "/budgets",
     "/analytics",
+    "/reports",
     "/goals",
     "/recurring",
     "/settings",

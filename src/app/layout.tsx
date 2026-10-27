@@ -11,6 +11,7 @@ import "./features.css";
 import "./premium.css";
 import "./vitrea-ui.css";
 import "./theme-system.css";
+import "./reports.css";
 
 export const metadata: Metadata = {
   title: "Nivora — Clarity for every financial decision",

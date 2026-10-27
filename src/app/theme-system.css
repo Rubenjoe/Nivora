@@ -322,7 +322,7 @@ label.premium-label span {
 }
 
 .premium-cash-flow-chart text {
-  fill: var(--color-chart-axis);
+  fill: var(--color-text, #f3f2f7);
   font-family: inherit;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
