@@ -409,3 +409,10 @@ Not yet implemented in this run: budgets; savings goals; recurring transactions;
 - Replaced the text-built brand in the app header and authentication form with a shared theme-aware wordmark component. Kept the app home link accessible and exposed the auth-page mark as a labeled image.
 - Added the supplied standalone gold bar mark as src/app/icon.png, which Next.js App Router uses for the browser tab icon.
 - No application tests or build were run for this asset/UI change.
+
+### Artistic landing page v2 (2026-11-03)
+
+- Added the supplied landing components and stylesheet under `src/components/landing` and applied the supplied sign-in/sign-up pages. Existing `safeReturnTo`, confirmation messaging, and `LandingAuth` login/register API behavior are preserved.
+- Confirmed both routes render in the local dev browser and `npx tsc --noEmit` passes. No console errors were visible during route rendering; browser console inspection itself was not available through the current browser control surface.
+- Removed the unused `src/components/auth-form.tsx`. Retained `src/app/auth.css` because `src/app/layout.tsx` still imports it and layout changes were expressly excluded.
+- No dependencies, layout, globals, API handlers, or demo financial data were changed.
