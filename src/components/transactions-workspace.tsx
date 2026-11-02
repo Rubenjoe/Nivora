@@ -41,6 +41,24 @@ type Draft = {
   description: string;
 };
 
+export type TransactionFilters = {
+  from?: string;
+  to?: string;
+  kind?: "income" | "expense";
+  categoryId?: string;
+  merchant?: string;
+};
+
+function queryFromFilters(filters: TransactionFilters) {
+  const query = new URLSearchParams();
+  if (filters.from) query.set("from", filters.from);
+  if (filters.to) query.set("to", filters.to);
+  if (filters.kind) query.set("kind", filters.kind);
+  if (filters.categoryId) query.set("categoryId", filters.categoryId);
+  if (filters.merchant) query.set("merchant", filters.merchant);
+  return query.size ? `?${query}` : "";
+}
+
 const initialDraft = (): Draft => ({
   kind: "expense",
   amount: "",
@@ -64,19 +82,29 @@ function transactionPageUrl(filters: string, page: number) {
   return `/api/v1/transactions${search ? `?${search}` : ""}`;
 }
 
-export function TransactionsWorkspace() {
+export function TransactionsWorkspace({
+  initialFilters = {},
+}: {
+  initialFilters?: TransactionFilters;
+}) {
+  const initialQuery = queryFromFilters(initialFilters);
   const [categories, setCategories] = useState<Category[]>([]);
   const [entries, setEntries] = useState<Transaction[]>([]);
-  const [activeFilters, setActiveFilters] = useState("");
+  const [activeFilters, setActiveFilters] = useState(initialQuery);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [kindFilter, setKindFilter] = useState("");
-  const [search, setSearch] = useState("");
+  const [from, setFrom] = useState(initialFilters.from ?? "");
+  const [to, setTo] = useState(initialFilters.to ?? "");
+  const [categoryFilter, setCategoryFilter] = useState(
+    initialFilters.categoryId ?? "",
+  );
+  const [kindFilter, setKindFilter] = useState(initialFilters.kind ?? "");
+  const [merchantFilter, setMerchantFilter] = useState(
+    initialFilters.merchant ?? "",
+  );
+  const [search, setSearch] = useState(initialFilters.merchant ?? "");
   const [currency, setCurrency] = useState("INR");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -155,7 +183,7 @@ export function TransactionsWorkspace() {
 
   useEffect(() => {
     let active = true;
-    load()
+    load(initialQuery)
       .then((result) => {
         if (!active) return;
         setError(null);
@@ -185,7 +213,7 @@ export function TransactionsWorkspace() {
     return () => {
       active = false;
     };
-  }, [load]);
+  }, [initialQuery, load]);
 
   async function loadNextPage() {
     if (!hasMore || loadingMore) return;
@@ -332,6 +360,7 @@ export function TransactionsWorkspace() {
     if (to) query.set("to", to);
     if (kindFilter) query.set("kind", kindFilter);
     if (categoryFilter) query.set("categoryId", categoryFilter);
+    if (merchantFilter.trim()) query.set("merchant", merchantFilter.trim());
     void refresh(query.size ? `?${query}` : "");
   }
 
@@ -340,6 +369,7 @@ export function TransactionsWorkspace() {
     setTo("");
     setKindFilter("");
     setCategoryFilter("");
+    setMerchantFilter("");
     setSearch("");
     setLoading(true);
     void refresh("");
@@ -618,10 +648,27 @@ export function TransactionsWorkspace() {
                 ))}
               </select>
             </label>
+            <label>
+              <span className="premium-label">Merchant</span>
+              <input
+                aria-label="Filter by merchant"
+                type="text"
+                placeholder="Any merchant"
+                maxLength={120}
+                value={merchantFilter}
+                onChange={(event) => setMerchantFilter(event.target.value)}
+                className="premium-input"
+              />
+            </label>
             <button type="submit" className="premium-btn-primary">
               Apply filters
             </button>
-            {(from || to || kindFilter || categoryFilter || search) && (
+            {(from ||
+              to ||
+              kindFilter ||
+              categoryFilter ||
+              merchantFilter ||
+              search) && (
               <button
                 type="button"
                 className="premium-btn-secondary small"
@@ -638,6 +685,8 @@ export function TransactionsWorkspace() {
                 if (to) query.set("to", to);
                 if (kindFilter) query.set("kind", kindFilter);
                 if (categoryFilter) query.set("categoryId", categoryFilter);
+                if (merchantFilter.trim())
+                  query.set("merchant", merchantFilter.trim());
                 const value = query.toString();
                 return value ? `?${value}` : "";
               })()}`}

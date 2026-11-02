@@ -3,6 +3,7 @@
 import Decimal from "decimal.js";
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -13,6 +14,30 @@ import { nearestChartPointIndex } from "@/components/chart-interaction";
 
 type SeriesPoint = { label: string; income: string; expenses: string };
 
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/** Series labels arrive as ISO dates; axis ticks read better without them. */
+function axisLabel(label: string): string {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(label);
+  if (day) return `${MONTHS[Number(day[2]) - 1]} ${Number(day[3])}`;
+  const month = /^(\d{4})-(\d{2})$/.exec(label);
+  if (month) return `${MONTHS[Number(month[2]) - 1]} ${month[1]}`;
+  return label;
+}
+
 export function CashFlowChart({
   currency,
   series,
@@ -22,8 +47,34 @@ export function CashFlowChart({
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const draggingPointerIdRef = useRef<number | null>(null);
+  const rawId = useId();
+  const chartId = `cf${rawId.replace(/[^a-zA-Z0-9_-]/g, "") || "chart"}`;
+  const incomeGradientId = `${chartId}-income`;
+  const expenseGradientId = `${chartId}-expense`;
+  const revealId = `${chartId}-reveal`;
   const [width, setWidth] = useState(760);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const seriesKey = useMemo(
+    () =>
+      series
+        .map(({ label, income, expenses }) => `${label}:${income}:${expenses}`)
+        .join("|"),
+    [series],
+  );
+  const [activeSelection, setActiveSelection] = useState<{
+    index: number;
+    seriesKey: string;
+  } | null>(null);
+  const activeIndex =
+    activeSelection?.seriesKey === seriesKey ? activeSelection.index : null;
+  const setActiveIndex = (index: number | null) => {
+    setActiveSelection((current) => {
+      if (index === null) return current === null ? current : null;
+      if (current?.index === index && current.seriesKey === seriesKey) {
+        return current;
+      }
+      return { index, seriesKey };
+    });
+  };
 
   useEffect(() => {
     const node = wrapRef.current;
@@ -99,7 +150,13 @@ export function CashFlowChart({
       value: maxValue.mul(ratio).toFixed(2),
       y: paddingTop + chartHeight * (1 - ratio),
     }));
-    const maxLabels = Math.max(2, Math.floor(chartWidth / 92));
+    const maxLabels = Math.max(2, Math.floor(chartWidth / 78));
+    const labelCount = Math.min(series.length, maxLabels);
+    const labelIndexes = new Set(
+      Array.from({ length: labelCount }, (_, index) =>
+        Math.round((index * (series.length - 1)) / Math.max(1, labelCount - 1)),
+      ),
+    );
 
     return {
       height,
@@ -118,7 +175,7 @@ export function CashFlowChart({
       incomeArea: areaPath(incomePoints),
       expenseArea: areaPath(expensePoints),
       yLabels,
-      labelStep: Math.max(1, Math.ceil(series.length / maxLabels)),
+      labelIndexes,
       summaries: series.map(
         (point) =>
           `${point.label}: income ${formatMoney(point.income, currency)}, expenses ${formatMoney(point.expenses, currency)}`,
@@ -175,7 +232,7 @@ export function CashFlowChart({
     incomeArea,
     expenseArea,
     yLabels,
-    labelStep,
+    labelIndexes,
     summaries,
   } = chartData;
   const selectedIndex =
@@ -276,11 +333,11 @@ export function CashFlowChart({
         }}
       >
         <defs>
-          <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={incomeGradientId} x1="0" y1="0" x2="0" y2="1">
             <stop
               offset="0%"
               stopColor="var(--color-chart-income)"
-              stopOpacity="0.2"
+              stopOpacity="0.16"
             />
             <stop
               offset="100%"
@@ -288,11 +345,11 @@ export function CashFlowChart({
               stopOpacity="0"
             />
           </linearGradient>
-          <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={expenseGradientId} x1="0" y1="0" x2="0" y2="1">
             <stop
               offset="0%"
               stopColor="var(--color-chart-expense)"
-              stopOpacity="0.13"
+              stopOpacity="0.1"
             />
             <stop
               offset="100%"
@@ -300,6 +357,15 @@ export function CashFlowChart({
               stopOpacity="0"
             />
           </linearGradient>
+          <clipPath id={revealId}>
+            <rect
+              x={paddingLeft}
+              y={0}
+              width={chartWidth}
+              height={height}
+              className="premium-chart-reveal"
+            />
+          </clipPath>
         </defs>
 
         <g className="premium-chart-grid">
@@ -354,33 +420,46 @@ export function CashFlowChart({
           ))}
         </g>
 
-        <path d={incomeArea} fill="url(#incomeGradient)" />
-        <path d={expenseArea} fill="url(#expenseGradient)" />
+        <g
+          className="premium-chart-series"
+          key={seriesKey}
+          clipPath={`url(#${revealId})`}
+        >
+          <path
+            d={incomeArea}
+            fill={`url(#${incomeGradientId})`}
+            className="premium-chart-area"
+          />
+          <path
+            d={expenseArea}
+            fill={`url(#${expenseGradientId})`}
+            className="premium-chart-area"
+          />
 
-        <path
-          d={incomeCurve}
-          fill="none"
-          stroke="var(--color-chart-income)"
-          strokeWidth={2.4}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="premium-chart-line"
-        />
-        <path
-          d={expenseCurve}
-          fill="none"
-          stroke="var(--color-chart-expense)"
-          strokeWidth={2.2}
-          strokeDasharray="7 5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="premium-chart-line"
-        />
+          <path
+            d={incomeCurve}
+            fill="none"
+            stroke="var(--color-chart-income)"
+            strokeWidth={2.4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="premium-chart-line"
+          />
+          <path
+            d={expenseCurve}
+            fill="none"
+            stroke="var(--color-chart-expense)"
+            strokeWidth={2.2}
+            strokeDasharray="7 5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="premium-chart-line"
+          />
+        </g>
 
         {series.map((point, index) => {
           const x = pointX(index);
-          const showLabel =
-            index % labelStep === 0 || index === series.length - 1;
+          const showLabel = labelIndexes.has(index);
           const summary = summaries[index]!;
           return (
             <g key={point.label}>
@@ -400,30 +479,34 @@ export function CashFlowChart({
                   fontSize={11}
                   fontWeight={500}
                 >
-                  {point.label}
+                  {axisLabel(point.label)}
                 </text>
               )}
-              <circle
-                cx={x}
-                cy={incomePoints[index]!.y}
-                r={4}
-                fill="var(--color-chart-income)"
-                stroke="var(--color-card-solid)"
-                strokeWidth={2}
-                className="premium-chart-point"
-              />
-              <rect
-                x={x - 3.5}
-                y={expensePoints[index]!.y - 3.5}
-                width={7}
-                height={7}
-                rx={1.5}
-                transform={`rotate(45 ${x} ${expensePoints[index]!.y})`}
-                fill="var(--color-chart-expense)"
-                stroke="var(--color-card-solid)"
-                strokeWidth={1.6}
-                className="premium-chart-point"
-              />
+              {selectedIndex === index && (
+                <>
+                  <circle
+                    cx={x}
+                    cy={incomePoints[index]!.y}
+                    r={4.5}
+                    fill="var(--color-chart-income)"
+                    stroke="var(--color-card-solid)"
+                    strokeWidth={2}
+                    className="premium-chart-point"
+                  />
+                  <rect
+                    x={x - 3.5}
+                    y={expensePoints[index]!.y - 3.5}
+                    width={7}
+                    height={7}
+                    rx={1.5}
+                    transform={`rotate(45 ${x} ${expensePoints[index]!.y})`}
+                    fill="var(--color-chart-expense)"
+                    stroke="var(--color-card-solid)"
+                    strokeWidth={1.6}
+                    className="premium-chart-point"
+                  />
+                </>
+              )}
               <rect
                 x={x - Math.max(8, chartWidth / series.length / 2)}
                 y={paddingTop}
@@ -452,7 +535,7 @@ export function CashFlowChart({
           role="status"
         >
           <span className="premium-chart-tooltip-date">
-            {activePoint.label}
+            {axisLabel(activePoint.label)}
           </span>
           <span className="premium-chart-tooltip-row">
             <i

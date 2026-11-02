@@ -31,6 +31,9 @@ import { VelocitySpendChart } from "@/components/velocity-spend-chart";
 import { CategoryBarChart } from "@/components/category-bar-chart";
 import { HealthScoreGauge } from "@/components/health-score-gauge";
 import { WeeklySpendChart } from "@/components/weekly-spend-chart";
+import { SpendingCalendar } from "@/components/charts/spending-calendar";
+import AnimatedList from "@/components/ui/animated-list.jsx";
+import { useThemePreference } from "@/components/theme-toggle";
 import type { MonthlyReportResult } from "@/lib/finance/monthly-report";
 
 function defaultMonthISO() {
@@ -40,6 +43,7 @@ function defaultMonthISO() {
 }
 
 export function MonthlyReportWorkspace() {
+  const theme = useThemePreference();
   const [selectedMonth, setSelectedMonth] = useState<string>(defaultMonthISO);
   const [report, setReport] = useState<MonthlyReportResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,6 +154,33 @@ export function MonthlyReportWorkspace() {
       (c) => c.categoryId === drillCategory,
     );
   }, [drillCategory, report]);
+
+  const takeawayItems = useMemo(
+    () =>
+      report?.highlights.map((item, index) => ({
+        id: `${report.periodMonth}-${index}`,
+        title: item.title,
+        description: item.description,
+      })) ?? [],
+    [report],
+  );
+
+  const calendarDays = useMemo(() => {
+    if (!report) return [];
+    const counts = new Map<string, number>();
+    for (const transaction of report.allTransactions) {
+      if (transaction.kind !== "expense") continue;
+      counts.set(
+        transaction.occurredOn,
+        (counts.get(transaction.occurredOn) ?? 0) + 1,
+      );
+    }
+    return report.velocitySeries.map((day) => ({
+      date: day.date,
+      amount: day.currentDailySpend,
+      count: counts.get(day.date) ?? 0,
+    }));
+  }, [report]);
 
   return (
     <div className="feature-workspace monthly-report-page">
@@ -369,7 +400,12 @@ export function MonthlyReportWorkspace() {
               <p className="summary-value">{report.totals.savingsRate}%</p>
               <p className="summary-note">
                 Avg {formatMoney(report.totals.avgDailySpend, report.currency)}{" "}
-                / day
+                / day ·{" "}
+                {report.comparison.savingsRateDelta === 0
+                  ? `same rate as ${report.priorMonthLabel}`
+                  : `${report.comparison.savingsRateDelta > 0 ? "up" : "down"} ${Math.abs(
+                      report.comparison.savingsRateDelta,
+                    )} pts vs ${report.priorMonthLabel}`}
               </p>
             </article>
           </div>
@@ -416,40 +452,73 @@ export function MonthlyReportWorkspace() {
               />
               <div className="section-heading compact">
                 <div>
-                  <h2 className="flex-heading">
+                  <h2 className="flex-heading" id="month-takeaways-title">
                     <Sparkles
                       size={17}
                       className="gold-icon"
                       aria-hidden="true"
                     />
-                    Month Takeaways & Strategic Insights
+                    Month Takeaways
                   </h2>
                   <p>
-                    Key financial shifts detected across your accounts this
-                    month.
+                    Strategic insights based on recorded transactions, budgets,
+                    and goal contributions for this period.
                   </p>
                 </div>
               </div>
 
-              <div className="highlights-grid">
-                {report.highlights.map((item, idx) => (
-                  <div className={`highlight-card tone-${item.type}`} key={idx}>
-                    <div className="highlight-badge-row">
-                      <span className={`highlight-type-badge ${item.type}`}>
-                        {item.type === "positive"
-                          ? "Strength"
-                          : item.type === "warning"
-                            ? "Action Needed"
-                            : item.type === "info"
-                              ? "Signal"
-                              : "Observation"}
-                      </span>
-                      <strong>{item.title}</strong>
-                    </div>
-                    <p className="highlight-desc">{item.description}</p>
-                  </div>
-                ))}
-              </div>
+              <AnimatedList
+                ariaLabel="Month takeaways"
+                items={takeawayItems}
+                renderItem={(_entry, index) => {
+                  const item = report.highlights[index];
+                  if (!item) return null;
+                  return (
+                    <article
+                      className={`highlight-card magic-bento-card tone-${item.type}`}
+                      onPointerMove={(event) => {
+                        if (event.pointerType !== "mouse") return;
+                        const bounds =
+                          event.currentTarget.getBoundingClientRect();
+                        event.currentTarget.style.setProperty(
+                          "--pointer-x",
+                          `${event.clientX - bounds.left}px`,
+                        );
+                        event.currentTarget.style.setProperty(
+                          "--pointer-y",
+                          `${event.clientY - bounds.top}px`,
+                        );
+                      }}
+                    >
+                      <div className="highlight-badge-row">
+                        <span className={`highlight-type-badge ${item.type}`}>
+                          {item.type === "positive"
+                            ? "Strength"
+                            : item.type === "warning"
+                              ? "Action Needed"
+                              : item.type === "info"
+                                ? "Signal"
+                                : "Observation"}
+                        </span>
+                        <strong>{item.title}</strong>
+                      </div>
+                      <p className="highlight-desc">{item.description}</p>
+                    </article>
+                  );
+                }}
+                animation="fade"
+                animateOnce
+                stagger={0.04}
+                selectOnHover={false}
+                showGradients={false}
+                displayScrollbar={false}
+                frame={false}
+                theme={theme}
+                accentColor="var(--color-primary)"
+                width="100%"
+                maxHeight="none"
+                className="month-takeaways-list"
+              />
             </section>
           )}
 
@@ -552,6 +621,31 @@ export function MonthlyReportWorkspace() {
               currency={report.currency}
               currentMonthLabel={report.monthLabel}
               priorMonthLabel={report.priorMonthLabel}
+            />
+          </section>
+
+          {/* 4b. Daily Spending Calendar */}
+          <section className="panel-card">
+            <GlowingEffect
+              glow
+              disabled={false}
+              spread={30}
+              proximity={56}
+              inactiveZone={0.12}
+            />
+            <div className="section-heading compact">
+              <div>
+                <h2>Daily Spending Calendar</h2>
+                <p>
+                  Exact daily outflows and expense counts from the same report
+                  totals. Select a day to open its transactions.
+                </p>
+              </div>
+            </div>
+            <SpendingCalendar
+              days={calendarDays}
+              currency={report.currency}
+              caption={`${report.monthLabel} daily expenses`}
             />
           </section>
 

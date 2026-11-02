@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { categories, transactions } from "@/lib/db/schema";
 import { hasTrustedOrigin } from "@/lib/security/origin";
@@ -41,6 +41,10 @@ export async function GET(request: Request) {
     if (query.data.kind) filters.push(eq(transactions.kind, query.data.kind));
     if (query.data.categoryId)
       filters.push(eq(transactions.categoryId, query.data.categoryId));
+    if (query.data.merchant)
+      filters.push(
+        sql`lower(${transactions.merchant}) = lower(${query.data.merchant})`,
+      );
     const rows = await current.db
       .select({
         transaction: transactions,

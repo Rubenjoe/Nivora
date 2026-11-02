@@ -315,7 +315,7 @@ test("evaluates monthly notification readiness based on user history and timezon
   // Brand new user registered after previous month ended with 0 transactions in prior month
   const statusNew = evaluateMonthlyNotification({
     timeZone: "Asia/Kolkata",
-    userCreatedAt: new Date("2026-10-05T00:00:00Z"),
+    userCreatedAt: new Date(),
     hasTransactionsInPriorMonth: false,
   });
   assert.equal(statusNew.isReady, false);

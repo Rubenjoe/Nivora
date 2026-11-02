@@ -20,6 +20,7 @@ export default async function OverviewPage() {
 
   return (
     <DashboardOverview
+      authenticated={session.status === "authenticated"}
       mode={mode}
       displayName={displayName}
       timezone={timezone}

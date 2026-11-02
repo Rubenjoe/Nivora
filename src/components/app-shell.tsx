@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
+  ArrowUpRight,
   BarChart3,
   CircleHelp,
   CreditCard,
-  Download,
   FileText,
   Goal,
   LayoutDashboard,
@@ -15,13 +15,12 @@ import {
   Menu,
   Repeat,
   Settings2,
-  Sparkles,
   Wallet,
   X,
 } from "lucide-react";
 
+import { BrandWordmark } from "@/components/brand-wordmark";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LiquidGlass } from "@/components/ui/liquid-glass";
 import {
   sessionInitials,
   useNavSession,
@@ -43,11 +42,29 @@ const navItems = [
 function BrandLogo() {
   return (
     <Link className="premium-brand" href="/" aria-label="Nivora home">
-      <span className="premium-brand-mark" aria-hidden="true">
-        n
-      </span>
-      <span>nivora</span>
+      <BrandWordmark className="premium-brand-lockup" />
     </Link>
+  );
+}
+
+function PublicFeatureGate() {
+  return (
+    <section className="public-dashboard public-feature-gate">
+      <p className="public-dashboard-kicker">PRIVATE WORKSPACE</p>
+      <h1>Sign in to continue.</h1>
+      <p>
+        Your transactions, budgets, goals, and preferences are available after
+        you sign in to your account.
+      </p>
+      <div className="public-dashboard-actions">
+        <Link className="premium-btn-premium" href="/sign-in">
+          Sign in
+        </Link>
+        <Link className="premium-btn-ghost" href="/sign-up">
+          Create an account <ArrowUpRight size={15} aria-hidden="true" />
+        </Link>
+      </div>
+    </section>
   );
 }
 
@@ -60,6 +77,15 @@ function TopBarAuth({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [open]);
 
   if (session.status === "loading") {
     return <span className="premium-auth-loading" aria-hidden="true" />;
@@ -139,11 +165,9 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const { session, refresh } = useNavSession(initialSession);
+  const showPrivateGate =
+    session.status === "anonymous" && pathname !== "/" && pathname !== "/help";
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const mode =
-    session.status === "authenticated"
-      ? (session.profile?.mode ?? "simple")
-      : "simple";
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -153,23 +177,6 @@ export function AppShell({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [drawerOpen]);
-
-  async function toggleMode() {
-    if (session.status !== "authenticated") return;
-    const next = mode === "simple" ? "pro" : "simple";
-    const response = await fetch("/api/v1/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: next }),
-    });
-    if (response.ok) await refresh();
-  }
-
-  const dockActiveIndex = pathname.startsWith("/transactions")
-    ? 0
-    : pathname.startsWith("/settings")
-      ? 2
-      : -1;
 
   const navigationLinks = (
     <>
@@ -184,37 +191,14 @@ export function AppShell({
             className={`premium-nav-item${active ? " active" : ""}`}
             href={href}
             aria-current={active ? "page" : undefined}
-            title={label}
             onClick={() => setDrawerOpen(false)}
           >
-            <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
+            <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
             <span>{label}</span>
           </Link>
         );
       })}
     </>
-  );
-
-  const modeControl = (
-    <button
-      type="button"
-      className="premium-mode-control"
-      onClick={() => void toggleMode()}
-      disabled={session.status !== "authenticated"}
-      aria-label={`Current mode: ${mode}. ${session.status === "authenticated" ? "Switch mode" : "Sign in to change mode"}`}
-      title={
-        session.status === "authenticated"
-          ? "Switch mode"
-          : "Sign in to change mode"
-      }
-    >
-      <Sparkles size={15} aria-hidden="true" />
-      <span>{mode === "simple" ? "Simple" : "Pro"}</span>
-      <span className="premium-mode-switch" aria-hidden="true">
-        <span className={mode === "simple" ? "selected" : ""}>S</span>
-        <span className={mode === "pro" ? "selected" : ""}>P</span>
-      </span>
-    </button>
   );
 
   return (
@@ -230,33 +214,39 @@ export function AppShell({
           onClick={() => setDrawerOpen(false)}
         />
       )}
-      <header className="premium-app-header glass-surface">
-        <div className="premium-header-brand glass-surface">
-          <button
-            type="button"
-            className="premium-mobile-toggle"
-            aria-label={drawerOpen ? "Close navigation" : "Open navigation"}
-            aria-expanded={drawerOpen}
-            aria-controls="mobile-navigation"
-            onClick={() => setDrawerOpen((value) => !value)}
-          >
-            {drawerOpen ? <X size={19} /> : <Menu size={19} />}
-          </button>
-          <BrandLogo />
-        </div>
-        <LiquidGlass
-          aria-label="Main navigation"
-          role="navigation"
-          className="premium-nav-desktop glass-surface"
-          contentClassName="premium-nav-glass-content"
-          tint={0.04}
-        >
-          {navigationLinks}
-        </LiquidGlass>
-        <div className="premium-header-actions glass-surface">
-          {modeControl}
-          <ThemeToggle />
-          <TopBarAuth session={session} onSignedOut={() => void refresh()} />
+      <header className="premium-app-header">
+        <div className="premium-header-inner">
+          <div className="premium-header-brand">
+            {session.status === "authenticated" && (
+              <button
+                type="button"
+                className="premium-mobile-toggle"
+                aria-label={drawerOpen ? "Close navigation" : "Open navigation"}
+                aria-expanded={drawerOpen}
+                aria-controls="mobile-navigation"
+                onClick={() => setDrawerOpen((value) => !value)}
+              >
+                {drawerOpen ? <X size={19} /> : <Menu size={18} />}
+              </button>
+            )}
+            <BrandLogo />
+          </div>
+          {session.status === "authenticated" && (
+            <nav aria-label="Main navigation" className="premium-nav-desktop">
+              {navigationLinks}
+            </nav>
+          )}
+          <div className="premium-header-actions">
+            <ThemeToggle />
+            {(session.status === "authenticated" ||
+              pathname === "/" ||
+              pathname === "/help") && (
+              <TopBarAuth
+                session={session}
+                onSignedOut={() => void refresh()}
+              />
+            )}
+          </div>
         </div>
       </header>
 
@@ -265,7 +255,7 @@ export function AppShell({
         aria-label="Mobile navigation"
         aria-hidden={!drawerOpen}
         inert={!drawerOpen}
-        className={`premium-sidebar glass-surface ${drawerOpen ? "open" : ""}`}
+        className={`premium-sidebar${drawerOpen ? " open" : ""}`}
       >
         <div className="premium-sidebar-inner">
           <div className="premium-sidebar-top">
@@ -285,63 +275,30 @@ export function AppShell({
           <nav aria-label="Main navigation" className="premium-nav-list">
             {navigationLinks}
           </nav>
-          <div className="premium-sidebar-bottom">
-            <div className="premium-mode-description">
-              <Sparkles size={15} aria-hidden="true" />
-              <span>
-                {mode === "simple"
-                  ? "Essentials and calm pacing"
-                  : "Advanced filters and analysis"}
-              </span>
+          {session.status === "anonymous" && (
+            <div className="premium-sidebar-auth">
+              <Link
+                className="premium-btn-secondary"
+                href="/sign-in"
+                onClick={() => setDrawerOpen(false)}
+              >
+                Sign in
+              </Link>
+              <Link
+                className="premium-btn-primary"
+                href="/sign-up"
+                onClick={() => setDrawerOpen(false)}
+              >
+                Get started
+              </Link>
             </div>
-          </div>
+          )}
         </div>
       </aside>
 
-      <nav
-        className="quick-dock glass-surface"
-        aria-label="Quick actions"
-        data-active={dockActiveIndex}
-        style={
-          {
-            "--dock-index": dockActiveIndex < 0 ? 0 : dockActiveIndex,
-          } as CSSProperties
-        }
-      >
-        <span
-          className={`quick-dock-indicator${dockActiveIndex < 0 ? " hidden" : ""}`}
-          aria-hidden="true"
-        />
-        <Link
-          href="/transactions"
-          aria-label="Add or review transactions"
-          title="Add transaction"
-          className={dockActiveIndex === 0 ? "is-active" : undefined}
-          aria-current={dockActiveIndex === 0 ? "page" : undefined}
-        >
-          <Wallet size={18} aria-hidden="true" />
-        </Link>
-        <Link
-          href="/api/v1/export/transactions"
-          aria-label="Export transactions as CSV"
-          title="Export CSV"
-        >
-          <Download size={17} aria-hidden="true" />
-        </Link>
-        <Link
-          href="/settings"
-          aria-label="Open settings"
-          title="Settings"
-          className={dockActiveIndex === 2 ? "is-active" : undefined}
-          aria-current={dockActiveIndex === 2 ? "page" : undefined}
-        >
-          <Settings2 size={17} aria-hidden="true" />
-        </Link>
-      </nav>
-
       <section className="premium-main">
         <div className="premium-content" id="main-content">
-          {children}
+          {showPrivateGate ? <PublicFeatureGate /> : children}
         </div>
       </section>
     </main>

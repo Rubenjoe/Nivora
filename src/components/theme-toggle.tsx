@@ -64,8 +64,12 @@ function getServerSnapshot(): Theme {
   return "dark";
 }
 
+export function useThemePreference() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const theme = useThemePreference();
   const isDark = theme === "dark";
 
   return (

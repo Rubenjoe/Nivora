@@ -1,31 +1,33 @@
 "use client";
 
 import Decimal from "decimal.js";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type FormEvent,
-} from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChart3, Download, TrendingDown, TrendingUp } from "lucide-react";
 import { CashFlowChart } from "@/components/cash-flow-chart";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { SmokeType } from "@/components/ui/smoke-type";
 import { formatMoney } from "@/lib/finance/money-format";
 import { assignCategoryColors } from "@/lib/finance/category-colors";
+import type { AdvancedAnalyticsData } from "@/components/charts/advanced-analytics";
 
-type AnalyticsData = {
-  period: { from: string; to: string; grain: string };
-  currency: string;
-  series: { label: string; income: string; expenses: string }[];
-  totals: { income: string; expenses: string; net: string };
-  comparison: {
-    incomeDelta: string | null;
-    expenseDelta: string | null;
-    netDelta: string | null;
-  };
-  categories: { name: string; amount: string }[];
+const AdvancedAnalytics = dynamic(
+  () =>
+    import("@/components/charts/advanced-analytics").then(
+      (module) => module.AdvancedAnalytics,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="advanced-loading" role="status">
+        Loading deeper views…
+      </div>
+    ),
+  },
+);
+
+type AnalyticsData = AdvancedAnalyticsData & {
   budgets: {
     id: string;
     name: string;
@@ -320,39 +322,51 @@ export function AnalyticsWorkspace() {
                           .div(max)
                           .mul(100)
                           .toFixed(1);
+                    const drillQuery = new URLSearchParams({
+                      from: data.period.from,
+                      to: data.period.to,
+                      kind: "expense",
+                      categoryId: category.categoryId,
+                    });
                     return (
-                      <li className="category-item" key={category.name}>
-                        <div className="category-line">
-                          <span className="premium-category-label">
-                            <i
-                              className="premium-category-dot"
+                      <li className="category-item" key={category.categoryId}>
+                        <Link
+                          className="category-drill-link"
+                          href={`/transactions?${drillQuery.toString()}`}
+                          aria-label={`View ${category.name} transactions in this range`}
+                        >
+                          <div className="category-line">
+                            <span className="premium-category-label">
+                              <i
+                                className="premium-category-dot"
+                                style={{
+                                  background:
+                                    categoryColors[category.name] ??
+                                    "var(--chart-cat-1)",
+                                }}
+                                aria-hidden="true"
+                              />
+                              {category.name}
+                            </span>
+                            <strong>
+                              {formatAmount(category.amount, data.currency)}
+                            </strong>
+                          </div>
+                          <div className="category-meta">
+                            <span>{share}% of spending</span>
+                          </div>
+                          <div className="category-track" aria-hidden="true">
+                            <span
+                              className="category-bar-fill"
                               style={{
+                                width: `${proportion}%`,
                                 background:
                                   categoryColors[category.name] ??
                                   "var(--chart-cat-1)",
                               }}
-                              aria-hidden="true"
                             />
-                            {category.name}
-                          </span>
-                          <strong>
-                            {formatAmount(category.amount, data.currency)}
-                          </strong>
-                        </div>
-                        <div className="category-meta">
-                          <span>{share}% of spending</span>
-                        </div>
-                        <div className="category-track" aria-hidden="true">
-                          <span
-                            className="category-bar-fill"
-                            style={{
-                              width: `${proportion}%`,
-                              background:
-                                categoryColors[category.name] ??
-                                "var(--chart-cat-1)",
-                            }}
-                          />
-                        </div>
+                          </div>
+                        </Link>
                       </li>
                     );
                   })}
@@ -365,6 +379,8 @@ export function AnalyticsWorkspace() {
               )}
             </section>
           </div>
+
+          <AdvancedAnalytics data={data} />
 
           {data.budgets.length ? (
             <section className="panel-card">

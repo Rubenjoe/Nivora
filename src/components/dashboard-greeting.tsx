@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SmokeType } from "@/components/ui/smoke-type";
 import {
   buildGreeting,
   greetingSubtitle,
@@ -44,9 +43,7 @@ export function DashboardGreeting({
         <span className="dashboard-greeting-mark" aria-hidden="true" />
         {greeting}
       </p>
-      <h1>
-        <SmokeType text="Overview" />
-      </h1>
+      <h1>Overview</h1>
       <p className="subheading">{greetingSubtitle(period)}</p>
     </div>
   );

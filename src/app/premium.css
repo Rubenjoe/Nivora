@@ -26,12 +26,8 @@
   --color-gradient-end: #4900cc;
 
   /* ---- Typography ---- */
-  --font-sans:
-    Inter, Aptos, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
-  --font-display:
-    Inter, Aptos, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  --font-sans: "Ranade", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Ranade", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;

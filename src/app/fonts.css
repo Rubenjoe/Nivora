@@ -1,0 +1,7 @@
+@font-face {
+  font-family: "Ranade";
+  src: url("/fonts/ranade-variable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+}

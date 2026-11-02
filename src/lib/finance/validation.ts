@@ -18,6 +18,7 @@ export const transactionQuery = z
     to: z.iso.date().optional(),
     kind: z.enum(["income", "expense"]).optional(),
     categoryId: z.string().uuid().optional(),
+    merchant: z.string().trim().min(1).max(120).optional(),
   })
   .refine((query) => !query.from || !query.to || query.from <= query.to, {
     path: ["to"],

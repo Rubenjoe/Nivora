@@ -3,26 +3,24 @@
 import Decimal from "decimal.js";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  Plus,
-  Wallet,
-  PieChart,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { ArrowUpRight, Plus, PieChart, Sparkles, X } from "lucide-react";
 import { CashFlowChart } from "@/components/cash-flow-chart";
 import { DashboardGreeting } from "@/components/dashboard-greeting";
 import { DonutChart } from "@/components/donut-chart";
-import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { SpendingCalendar } from "@/components/charts/spending-calendar";
+import {
+  fillDailyActivity,
+  type DailyActivity,
+} from "@/lib/finance/chart-data";
 import { formatMoney } from "@/lib/finance/money-format";
 import { assignCategoryColors } from "@/lib/finance/category-colors";
 
 type DashboardData = {
   currency: string;
+  period: { from: string; to: string; grain: string };
   totals: { income: string; expenses: string; net: string };
-  categories: { name: string; amount: string }[];
+  categories: { categoryId: string; name: string; amount: string }[];
+  dailyActivity?: DailyActivity[];
   transactions: {
     transaction: {
       id: string;
@@ -79,10 +77,46 @@ function rangeLabel(range: DashboardRange) {
   );
 }
 
+function comparisonNote(delta: string | null | undefined) {
+  if (!delta) return null;
+  if (delta === "new") return "First period with activity";
+  return `${delta} vs previous period`;
+}
+
 function dateISO(date: Date) {
   const localDate = new Date(date);
   localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
   return localDate.toISOString().slice(0, 10);
+}
+
+function ChartSkeleton({ tall = false }: { tall?: boolean }) {
+  return (
+    <div
+      className={`dashboard-chart-skeleton${tall ? " tall" : ""}`}
+      aria-hidden="true"
+    >
+      <span />
+      <span />
+      <span />
+      <span />
+      <span />
+    </div>
+  );
+}
+
+function transactionHref(
+  period: { from: string; to: string } | undefined,
+  filters: { categoryId?: string; merchant?: string } = {},
+) {
+  if (!period) return "/transactions";
+  const query = new URLSearchParams({
+    from: period.from,
+    to: period.to,
+    kind: "expense",
+  });
+  if (filters.categoryId) query.set("categoryId", filters.categoryId);
+  if (filters.merchant) query.set("merchant", filters.merchant);
+  return `/transactions?${query.toString()}`;
 }
 
 async function readDashboard(
@@ -158,11 +192,13 @@ async function readDashboard(
 }
 
 export function DashboardOverview({
+  authenticated,
   mode,
   displayName,
   timezone,
   initialGreeting,
 }: {
+  authenticated: boolean;
   mode: "simple" | "pro";
   displayName: string | null;
   timezone: string | null;
@@ -180,6 +216,7 @@ export function DashboardOverview({
   const [reviewDismissed, setReviewDismissed] = useState(false);
 
   useEffect(() => {
+    if (!authenticated) return;
     let active = true;
     fetch("/api/v1/reports/status")
       .then((res) => (res.ok ? res.json() : null))
@@ -198,7 +235,7 @@ export function DashboardOverview({
     return () => {
       active = false;
     };
-  }, []);
+  }, [authenticated]);
 
   function dismissReviewBanner() {
     if (reviewNotification && typeof window !== "undefined") {
@@ -211,6 +248,7 @@ export function DashboardOverview({
   }
 
   useEffect(() => {
+    if (!authenticated) return;
     let active = true;
     readDashboard(period, mode)
       .then((result) => {
@@ -234,7 +272,7 @@ export function DashboardOverview({
     return () => {
       active = false;
     };
-  }, [period, mode]);
+  }, [authenticated, period, mode]);
 
   const categoryColors = assignCategoryColors(
     (dashboard?.categories ?? []).map((category) => category.name),
@@ -245,14 +283,69 @@ export function DashboardOverview({
     new Decimal(0),
   );
 
+  const calendarDays =
+    dashboard?.period && dashboard.dailyActivity
+      ? fillDailyActivity(
+          dashboard.dailyActivity,
+          dashboard.period.from,
+          dashboard.period.to,
+        ).map((day) => ({
+          date: day.date,
+          amount: day.expenses,
+          count: day.transactionCount,
+        }))
+      : [];
+
   const currency = dashboard?.currency ?? "INR";
   const income = dashboard?.totals.income ?? "0";
   const expenses = dashboard?.totals.expenses ?? "0";
   const net = dashboard?.totals.net ?? "0";
 
+  const totalFlow = new Decimal(income).plus(expenses);
+  const incomePercent = totalFlow.isZero()
+    ? 0
+    : new Decimal(income).div(totalFlow).mul(100).toNumber();
+  const topCategory = dashboard?.categories[0];
+  const topCategoryShare =
+    topCategory && !totalCategorySpend.isZero()
+      ? new Decimal(topCategory.amount)
+          .div(totalCategorySpend)
+          .mul(100)
+          .toFixed(1)
+      : null;
+  const budgetsNearLimit =
+    dashboard?.budgets?.filter((budget) => budget.alert).length ?? 0;
+  const leadGoal = dashboard?.goals?.[0];
+  const hasSignals =
+    !loading && !dashboardError && Boolean(dashboard?.categories.length);
+
+  if (!authenticated) {
+    return (
+      <section className="public-dashboard">
+        <p className="public-dashboard-kicker">A clearer view of your money</p>
+        <h1>Your finances, in focus.</h1>
+        <p>
+          Sign in to see your private overview, track spending, and keep your
+          financial plans together.
+        </p>
+        <div className="public-dashboard-actions">
+          <Link className="premium-btn-premium" href="/sign-in">
+            Sign in
+          </Link>
+          <Link className="premium-btn-ghost" href="/sign-up">
+            Create an account <ArrowUpRight size={15} aria-hidden="true" />
+          </Link>
+        </div>
+        <span className="public-dashboard-note">
+          Your financial information stays private to your account.
+        </span>
+      </section>
+    );
+  }
+
   return (
     <>
-      <div className="premium-header">
+      <div className="premium-header dashboard-header">
         <DashboardGreeting
           displayName={displayName}
           timezone={timezone}
@@ -295,15 +388,15 @@ export function DashboardOverview({
       {reviewNotification?.isReady && !reviewDismissed && (
         <aside className="monthly-review-banner" role="status">
           <div className="banner-content">
-            <Sparkles size={16} className="gold-icon" aria-hidden="true" />
+            <Sparkles size={15} className="gold-icon" aria-hidden="true" />
             <div>
               <strong>
                 Your {reviewNotification.previousMonthLabel} Money Review is
                 ready
               </strong>
               <p>
-                Review spending velocity, category shifts, and your monthly
-                health score.
+                Spending velocity, category shifts, and your monthly health
+                score.
               </p>
             </div>
           </div>
@@ -312,7 +405,7 @@ export function DashboardOverview({
               href={`/reports?month=${reviewNotification.previousMonth}`}
               className="banner-primary-btn"
             >
-              View Review
+              View review
             </Link>
             <button
               type="button"
@@ -326,99 +419,94 @@ export function DashboardOverview({
         </aside>
       )}
 
-      <div className="premium-summary-grid" aria-label="Financial summary">
-        {[
-          {
-            label: "Net Cash Flow",
-            value: net,
-            icon: Wallet,
-            tone: "primary",
-            delta: dashboard?.comparison?.netDelta,
-          },
-          {
-            label: "Total Income",
-            value: income,
-            icon: ArrowDownLeft,
-            tone: "success",
-            delta: dashboard?.comparison?.incomeDelta,
-          },
-          {
-            label: "Total Expenses",
-            value: expenses,
-            icon: ArrowUpRight,
-            tone: "expense",
-            delta: dashboard?.comparison?.expenseDelta,
-          },
-        ].map(({ label, value, icon: Icon, tone, delta }) => {
-          const accent =
-            tone === "primary"
-              ? "premium-summary-accent-net"
-              : tone === "success"
-                ? "premium-summary-accent-income"
-                : "premium-summary-accent-expense";
-          const iconFill =
-            tone === "primary"
-              ? "var(--color-primary)"
-              : tone === "success"
-                ? "var(--color-success)"
-                : "var(--color-expense)";
-          return (
-            <article className={`premium-summary-card ${accent}`} key={label}>
-              <GlowingEffect
-                glow
-                disabled={false}
-                spread={24}
-                proximity={48}
-                inactiveZone={0.12}
-              />
-              <div className="premium-summary-head">
-                <span className="premium-summary-label">{label}</span>
-                <span
-                  className="premium-summary-icon"
-                  style={{ color: iconFill }}
-                >
-                  <Icon size={16} />
-                </span>
-              </div>
-              <p className="premium-summary-value">
-                {dashboard && value ? formatMoney(value, currency) : "—"}
-              </p>
-              {delta && (
-                <p className="premium-summary-note premium-summary-delta">
-                  {delta.startsWith("-") || delta.startsWith("+")
-                    ? delta
-                    : `Vs prior period: ${delta}`}
-                </p>
-              )}
-              {!delta && (
-                <p className="premium-summary-note">
-                  {dashboard
-                    ? `Recorded · ${rangeLabel(period)}`
-                    : "Selected period"}
-                </p>
-              )}
-            </article>
-          );
-        })}
-      </div>
+      <section className="position-panel" aria-label="Financial summary">
+        <div className="position-lead">
+          <p className="meta-label">Net cash flow · {rangeLabel(period)}</p>
+          <p className="position-value">
+            {dashboard ? formatMoney(net, currency) : "—"}
+          </p>
+          <p className="position-note">
+            {comparisonNote(dashboard?.comparison?.netDelta) ??
+              "Income minus expenses"}
+          </p>
+          <div className="flow-balance" aria-hidden="true">
+            <span
+              className="flow-income"
+              style={{ width: `${incomePercent}%` }}
+            />
+            <span className="flow-expense" />
+          </div>
+          <div className="flow-balance-legend">
+            <span>
+              <i className="flow-key income" aria-hidden="true" />
+              {formatMoney(income, currency)} in
+            </span>
+            <span>
+              <i className="flow-key expense" aria-hidden="true" />
+              {formatMoney(expenses, currency)} out
+            </span>
+          </div>
+        </div>
+        <dl className="position-side">
+          <div>
+            <dt>
+              <span className="position-dot income" aria-hidden="true" />
+              Total income
+            </dt>
+            <dd>{dashboard ? formatMoney(income, currency) : "—"}</dd>
+            <p>{comparisonNote(dashboard?.comparison?.incomeDelta) ?? "—"}</p>
+          </div>
+          <div>
+            <dt>
+              <span className="position-dot expense" aria-hidden="true" />
+              Total expenses
+            </dt>
+            <dd>{dashboard ? formatMoney(expenses, currency) : "—"}</dd>
+            <p>{comparisonNote(dashboard?.comparison?.expenseDelta) ?? "—"}</p>
+          </div>
+        </dl>
+      </section>
+
+      {hasSignals && (
+        <ul className="signal-strip" aria-label="Signals for this period">
+          {topCategory && (
+            <li>
+              <span>Top category</span>
+              <strong>{topCategory.name}</strong>
+              <em>{topCategoryShare}% of spending</em>
+            </li>
+          )}
+          <li>
+            <span>Budget watch</span>
+            <strong>
+              {budgetsNearLimit
+                ? `${budgetsNearLimit} near the limit`
+                : "Within limits"}
+            </strong>
+            <em>
+              {dashboard?.budgets?.length
+                ? `${dashboard.budgets.length} active budgets`
+                : "No budgets yet"}
+            </em>
+          </li>
+          <li>
+            <span>Savings</span>
+            <strong>{leadGoal ? leadGoal.name : "No goal yet"}</strong>
+            <em>{leadGoal ? `${leadGoal.percent}% funded` : "Set a target"}</em>
+          </li>
+        </ul>
+      )}
 
       <div className="premium-dashboard-grid">
-        <section className="premium-card premium-analytics-panel">
-          <GlowingEffect
-            glow
-            disabled={false}
-            spread={30}
-            proximity={56}
-            inactiveZone={0.12}
-          />
-          <div className="premium-section">
+        <section className="premium-card chart-panel">
+          <div className="section-head">
             <div>
               <h2>Cash flow</h2>
-              <p>Income and spending across the selected period.</p>
+              <p>Income and spending, {rangeLabel(period).toLowerCase()}.</p>
             </div>
           </div>
           {loading ? (
-            <div className="premium-loading">Loading your records…</div>
+            <ChartSkeleton tall />
           ) : dashboardError ? (
             <div className="premium-error">
               <h3>Your figures stay private</h3>
@@ -432,30 +520,19 @@ export function DashboardOverview({
           )}
         </section>
 
-        <section className="premium-card premium-category-panel">
-          <GlowingEffect
-            glow
-            disabled={false}
-            spread={30}
-            proximity={56}
-            inactiveZone={0.12}
-          />
-          <div className="premium-section">
+        <section className="premium-card breakdown-panel">
+          <div className="section-head">
             <div>
-              <h2>Spending breakdown</h2>
-              <p>Expense distribution by category.</p>
+              <h2>Where it went</h2>
+              <p>Share of expenses by category.</p>
             </div>
-            <span className="premium-summary-note premium-category-total">
-              {formatMoney(dashboard?.totals.expenses ?? "0", currency)} total
-              expenses
-            </span>
           </div>
           {loading ? (
-            <div className="premium-loading">Loading your records…</div>
+            <ChartSkeleton tall />
           ) : !dashboard?.categories.length ? (
             <div className="premium-empty premium-empty-compact">
               <span className="premium-empty-symbol">
-                <PieChart size={20} aria-hidden="true" />
+                <PieChart size={19} aria-hidden="true" />
               </span>
               <h3>No spending breakdown yet</h3>
               <p>Record expenses to see where your money goes.</p>
@@ -466,6 +543,14 @@ export function DashboardOverview({
                 categories={dashboard.categories}
                 total={new Decimal(dashboard.totals.expenses).toFixed(2)}
                 currency={currency}
+                drilldown={
+                  dashboard.period
+                    ? {
+                        from: dashboard.period.from,
+                        to: dashboard.period.to,
+                      }
+                    : undefined
+                }
               />
               <ol
                 className="premium-category-list"
@@ -479,8 +564,17 @@ export function DashboardOverview({
                         .mul(100)
                         .toFixed(1);
                   return (
-                    <li className="premium-category-item" key={category.name}>
-                      <div className="premium-category-line">
+                    <li
+                      className="premium-category-item"
+                      key={category.categoryId ?? category.name}
+                    >
+                      <Link
+                        className="premium-category-line category-drill-link"
+                        href={transactionHref(dashboard.period, {
+                          categoryId: category.categoryId,
+                        })}
+                        aria-label={`View ${category.name} transactions for this range`}
+                      >
                         <span className="premium-category-label">
                           <i
                             className="premium-category-dot"
@@ -497,7 +591,7 @@ export function DashboardOverview({
                           {formatMoney(category.amount, currency)}
                         </strong>
                         <span>{share}%</span>
-                      </div>
+                      </Link>
                     </li>
                   );
                 })}
@@ -507,182 +601,209 @@ export function DashboardOverview({
         </section>
       </div>
 
-      {(dashboard?.budgets?.length || mode === "pro") && (
-        <section className="premium-card premium-budget-panel">
-          <GlowingEffect
-            glow
-            disabled={false}
-            spread={30}
-            proximity={56}
-            inactiveZone={0.12}
-          />
-          <div className="premium-section">
-            <div>
-              <h2>Budget progress</h2>
-              <p>Active budgets for the month ending in this range.</p>
-            </div>
+      <section className="premium-card dashboard-calendar-panel">
+        <div className="section-head">
+          <div>
+            <h2>Daily spending</h2>
+            <p>Every recorded expense, by calendar day.</p>
           </div>
-          {!dashboard?.budgets?.length ? (
-            <p className="premium-empty-note">
-              Create a monthly budget to track spending here.
-              <Link href="/budgets" className="premium-inline-link">
-                Manage budgets
-              </Link>
-            </p>
-          ) : (
-            <ul className="premium-widget-list">
-              {dashboard.budgets.map((budget) => (
-                <li key={budget.id} className="premium-widget-row">
-                  <div>
-                    <strong>{budget.name}</strong>
-                    <span>
-                      {formatMoney(budget.spent, currency)} of{" "}
-                      {formatMoney(budget.amount, currency)}
-                    </span>
-                  </div>
-                  <div className="premium-progress">
-                    <span
-                      className={`premium-progress-fill ${budget.alert ? "over" : ""}`}
-                      style={{ width: `${Math.min(budget.percent, 100)}%` }}
-                    />
-                  </div>
-                  <span className="premium-widget-percent">
-                    {budget.percent}%
+          {dashboard?.period ? (
+            <Link
+              className="quiet-link"
+              href={transactionHref(dashboard.period)}
+            >
+              Open expenses <ArrowUpRight size={13} />
+            </Link>
+          ) : null}
+        </div>
+        {loading ? (
+          <ChartSkeleton />
+        ) : dashboardError ? (
+          <div className="premium-error compact">
+            <p>{dashboardError}</p>
+          </div>
+        ) : calendarDays.length ? (
+          <SpendingCalendar
+            days={calendarDays}
+            currency={currency}
+            caption={`Spending by day · ${rangeLabel(period)}`}
+          />
+        ) : (
+          <p className="premium-empty-note">No calendar days in this range.</p>
+        )}
+      </section>
+
+      <div className="dashboard-lower">
+        <section className="premium-card premium-recent-panel">
+          <div className="section-head">
+            <div>
+              <h2>Recent activity</h2>
+              <p>Latest entries in this period.</p>
+            </div>
+            <Link href="/transactions" className="quiet-link">
+              All transactions <ArrowUpRight size={13} />
+            </Link>
+          </div>
+          {dashboard?.transactions.length ? (
+            <ul className="premium-recent-list">
+              {dashboard.transactions.map(({ transaction, categoryName }) => (
+                <li key={transaction.id} className="premium-recent-row">
+                  <span
+                    className={`premium-recent-sign ${transaction.kind}`}
+                    aria-hidden="true"
+                  >
+                    {transaction.kind === "expense" ? "−" : "+"}
                   </span>
+                  <span className="premium-recent-copy">
+                    <strong>{transaction.merchant || categoryName}</strong>
+                    <small>
+                      {categoryName} ·{" "}
+                      {new Intl.DateTimeFormat("en", {
+                        month: "short",
+                        day: "numeric",
+                      }).format(new Date(`${transaction.occurredOn}T12:00:00`))}
+                    </small>
+                  </span>
+                  <strong
+                    className={`premium-recent-amount ${transaction.kind}`}
+                  >
+                    {formatMoney(transaction.amount, transaction.currency, {
+                      sign:
+                        transaction.kind === "expense"
+                          ? "negative"
+                          : "positive",
+                    })}
+                  </strong>
                 </li>
               ))}
             </ul>
+          ) : (
+            <p className="premium-recent-empty" role="status">
+              {loading
+                ? "Loading recent activity…"
+                : (dashboardError ??
+                  "Your recorded transactions will appear here.")}
+            </p>
           )}
         </section>
-      )}
 
-      {dashboard?.goals?.length ? (
-        <section className="premium-card premium-goals-panel">
-          <GlowingEffect
-            glow
-            disabled={false}
-            spread={30}
-            proximity={56}
-            inactiveZone={0.12}
-          />
-          <div className="premium-section">
-            <div>
-              <h2>Savings goals</h2>
-              <p>Progress toward your targets.</p>
+        <aside className="dashboard-rail" aria-label="Plans and progress">
+          <section className="premium-card plans-panel">
+            <div className="section-head">
+              <div>
+                <h2>Plans in motion</h2>
+                <p>Budgets and goals at a glance.</p>
+              </div>
             </div>
-          </div>
-          <ul className="premium-widget-list">
-            {dashboard.goals.slice(0, 3).map((goal) => (
-              <li key={goal.id} className="premium-widget-row">
-                <div>
-                  <strong>{goal.name}</strong>
-                  <span>
-                    {formatMoney(goal.saved, currency)} saved of{" "}
-                    {formatMoney(goal.target, currency)}
-                  </span>
-                </div>
-                <div className="premium-progress">
-                  <span
-                    className="premium-progress-fill ok"
-                    style={{ width: `${Math.min(goal.percent, 100)}%` }}
-                  />
-                </div>
-                <span className="premium-widget-percent">{goal.percent}%</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+            {dashboard?.budgets?.length ? (
+              <div className="rail-group">
+                <h3>Budgets</h3>
+                <ul className="premium-widget-list">
+                  {dashboard.budgets.slice(0, 3).map((budget) => (
+                    <li key={budget.id} className="plan-row">
+                      <div className="plan-row-head">
+                        <strong>{budget.name}</strong>
+                        <span className={budget.alert ? "is-alert" : undefined}>
+                          {budget.percent}%
+                        </span>
+                      </div>
+                      <div
+                        className="premium-progress"
+                        role="progressbar"
+                        aria-label={`${budget.name} budget used`}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.min(
+                          Math.round(budget.percent),
+                          100,
+                        )}
+                      >
+                        <span
+                          className={`premium-progress-fill ${budget.alert ? "over" : ""}`}
+                          style={{ width: `${Math.min(budget.percent, 100)}%` }}
+                        />
+                      </div>
+                      <p>
+                        {formatMoney(budget.spent, currency)} of{" "}
+                        {formatMoney(budget.amount, currency)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="premium-empty-note">
+                No budgets yet.
+                <Link href="/budgets" className="premium-inline-link">
+                  Create a budget
+                </Link>
+              </p>
+            )}
+            {dashboard?.goals?.length ? (
+              <div className="rail-group">
+                <h3>Savings goals</h3>
+                <ul className="premium-widget-list">
+                  {dashboard.goals.slice(0, 2).map((goal) => (
+                    <li key={goal.id} className="plan-row">
+                      <div className="plan-row-head">
+                        <strong>{goal.name}</strong>
+                        <span>{goal.percent}%</span>
+                      </div>
+                      <div
+                        className="premium-progress"
+                        role="progressbar"
+                        aria-label={`${goal.name} savings progress`}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.min(Math.round(goal.percent), 100)}
+                      >
+                        <span
+                          className="premium-progress-fill ok"
+                          style={{ width: `${Math.min(goal.percent, 100)}%` }}
+                        />
+                      </div>
+                      <p>
+                        {formatMoney(goal.saved, currency)} of{" "}
+                        {formatMoney(goal.target, currency)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </section>
 
-      {mode === "pro" && dashboard?.upcoming?.length ? (
-        <section className="premium-card premium-recurring-panel">
-          <GlowingEffect
-            glow
-            disabled={false}
-            spread={30}
-            proximity={56}
-            inactiveZone={0.12}
-          />
-          <div className="premium-section">
-            <div>
-              <h2>Upcoming recurring</h2>
-              <p>Schedules due soon.</p>
-            </div>
-          </div>
-          <ul className="premium-widget-list">
-            {dashboard.upcoming.map((item) => (
-              <li key={item.id} className="premium-widget-row">
+          {mode === "pro" && dashboard?.upcoming?.length ? (
+            <section className="premium-card upcoming-panel">
+              <div className="section-head">
                 <div>
-                  <strong>{item.name}</strong>
-                  <span>Next due {item.nextDueDate}</span>
+                  <h2>Upcoming</h2>
+                  <p>Scheduled commitments.</p>
                 </div>
-                <strong className="premium-widget-amount">
-                  {formatMoney(item.amount, currency)}
-                </strong>
-              </li>
-            ))}
-          </ul>
-          <Link className="premium-inline-link" href="/recurring">
-            Manage recurring schedules <ArrowUpRight size={13} />
-          </Link>
-        </section>
-      ) : null}
-
-      <section className="premium-card premium-recent-panel">
-        <GlowingEffect
-          glow
-          disabled={false}
-          spread={30}
-          proximity={56}
-          inactiveZone={0.12}
-        />
-        <div className="premium-section">
-          <div>
-            <h2>Recent activity</h2>
-            <p>Entries from the selected period</p>
-          </div>
-          <Link href="/transactions" className="premium-inline-link">
-            All transactions <ArrowUpRight size={13} />
-          </Link>
-        </div>
-        {dashboard?.transactions.length ? (
-          <ul className="premium-recent-list">
-            {dashboard.transactions.map(({ transaction, categoryName }) => (
-              <li key={transaction.id} className="premium-recent-row">
-                <span
-                  className={`premium-recent-sign ${transaction.kind}`}
-                  aria-hidden="true"
-                >
-                  {transaction.kind === "expense" ? "−" : "+"}
-                </span>
-                <span className="premium-recent-copy">
-                  <strong>{transaction.merchant || categoryName}</strong>
-                  <small>
-                    {categoryName} ·{" "}
-                    {new Intl.DateTimeFormat("en", {
-                      month: "short",
-                      day: "numeric",
-                    }).format(new Date(`${transaction.occurredOn}T12:00:00`))}
-                  </small>
-                </span>
-                <strong className={`premium-recent-amount ${transaction.kind}`}>
-                  {formatMoney(transaction.amount, transaction.currency, {
-                    sign:
-                      transaction.kind === "expense" ? "negative" : "positive",
-                  })}
-                </strong>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="premium-recent-empty" role="status">
-            {loading
-              ? "Loading recent activity…"
-              : (dashboardError ??
-                "Your recorded transactions will appear here.")}
-          </p>
-        )}
-      </section>
+              </div>
+              <ul className="premium-widget-list">
+                {dashboard.upcoming.map((item) => (
+                  <li key={item.id} className="upcoming-row">
+                    <div>
+                      <strong>{item.name}</strong>
+                      <span>
+                        {new Intl.DateTimeFormat("en", {
+                          month: "short",
+                          day: "numeric",
+                        }).format(new Date(`${item.nextDueDate}T12:00:00`))}
+                      </span>
+                    </div>
+                    <strong>{formatMoney(item.amount, currency)}</strong>
+                  </li>
+                ))}
+              </ul>
+              <Link className="quiet-link" href="/recurring">
+                Manage schedules <ArrowUpRight size={13} />
+              </Link>
+            </section>
+          ) : null}
+        </aside>
+      </div>
 
       <footer className="premium-footer">
         Built for clarity, not complexity. <span>·</span> Your financial data

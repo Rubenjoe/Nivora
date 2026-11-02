@@ -1,16 +1,37 @@
 "use client";
 
 import Decimal from "decimal.js";
+import { useState } from "react";
 import { assignCategoryColors } from "@/lib/finance/category-colors";
 import { formatMoney } from "@/lib/finance/money-format";
 
 interface DonutChartProps {
-  categories: { name: string; amount: string }[];
+  categories: { name: string; amount: string; categoryId?: string }[];
   total: string;
   currency: string;
+  drilldown?: { from: string; to: string };
 }
 
-export function DonutChart({ categories, total, currency }: DonutChartProps) {
+function drillHref(
+  drilldown: { from: string; to: string },
+  categoryId: string,
+) {
+  const query = new URLSearchParams({
+    from: drilldown.from,
+    to: drilldown.to,
+    kind: "expense",
+    categoryId,
+  });
+  return `/transactions?${query.toString()}`;
+}
+
+export function DonutChart({
+  categories,
+  total,
+  currency,
+  drilldown,
+}: DonutChartProps) {
+  const [activeName, setActiveName] = useState<string | null>(null);
   const totalDec = new Decimal(total);
   const sortedCategories = [...categories].sort((a, b) =>
     new Decimal(b.amount).comparedTo(new Decimal(a.amount)),
@@ -62,6 +83,8 @@ export function DonutChart({ categories, total, currency }: DonutChartProps) {
     )
     .join(", ");
 
+  const active = segments.find((segment) => segment.name === activeName);
+
   return (
     <div
       className="premium-donut-chart"
@@ -77,11 +100,14 @@ export function DonutChart({ categories, total, currency }: DonutChartProps) {
           stroke="var(--color-border-soft)"
           strokeWidth={strokeWidth}
         />
-        {segmentsWithOffsets.map((segment) => {
+        {segmentsWithOffsets.map((segment, index) => {
           if (segment.percentage <= 0) return null;
-          return (
+          const segmentTitle = `${segment.name}: ${formatMoney(
+            segment.amount,
+            currency,
+          )} (${segment.percentage.toFixed(1)}%)`;
+          const circle = (
             <circle
-              key={segment.name}
               cx="90"
               cy="90"
               r={radius}
@@ -91,19 +117,46 @@ export function DonutChart({ categories, total, currency }: DonutChartProps) {
               strokeDasharray={`${segment.dash} ${circumference - segment.dash}`}
               strokeDashoffset={segment.strokeDashoffset}
               strokeLinecap="butt"
-              transform="rotate(-90 90 90)"
-              className="premium-donut-segment"
+              transform="rotate(-90)"
+              className={`premium-donut-segment${
+                activeName === segment.name ? " is-active" : ""
+              }`}
+              style={{ animationDelay: `${index * 45}ms` }}
+              onMouseEnter={() => setActiveName(segment.name)}
+              onMouseLeave={() => setActiveName(null)}
             >
-              <title>{`${segment.name}: ${formatMoney(segment.amount, currency)} (${segment.percentage.toFixed(1)}%)`}</title>
+              <title>{segmentTitle}</title>
             </circle>
+          );
+          const href =
+            drilldown && segment.categoryId
+              ? drillHref(drilldown, segment.categoryId)
+              : null;
+          if (!href)
+            return <g key={segment.categoryId ?? segment.name}>{circle}</g>;
+          return (
+            <a
+              key={segment.categoryId ?? segment.name}
+              href={href}
+              className="premium-donut-link"
+              aria-label={`View ${segmentTitle} transactions`}
+              onFocus={() => setActiveName(segment.name)}
+              onBlur={() => setActiveName(null)}
+            >
+              {circle}
+            </a>
           );
         })}
       </svg>
       <div className="premium-donut-center">
         <span className="premium-donut-total">
-          {formatMoney(total, currency)}
+          {formatMoney(active ? active.amount : total, currency)}
         </span>
-        <span className="premium-donut-label">Total expenses</span>
+        <span className="premium-donut-label">
+          {active
+            ? `${active.name} · ${active.percentage.toFixed(1)}%`
+            : "Total expenses"}
+        </span>
       </div>
     </div>
   );

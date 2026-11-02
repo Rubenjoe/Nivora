@@ -37,15 +37,8 @@ export function HealthScoreGauge({
           >
             <defs>
               <linearGradient id="healthScoreGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop
-                  offset="0%"
-                  stopColor="var(--color-chart-expense, #ff897f)"
-                />
-                <stop offset="50%" stopColor="var(--color-gold, #f4c878)" />
-                <stop
-                  offset="100%"
-                  stopColor="var(--color-chart-income, #70d6b2)"
-                />
+                <stop offset="0%" stopColor="var(--color-primary, #8b7bff)" />
+                <stop offset="100%" stopColor="var(--color-gold, #e0bc74)" />
               </linearGradient>
             </defs>
             {/* Background Arc */}

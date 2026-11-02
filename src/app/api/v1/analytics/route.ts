@@ -20,6 +20,12 @@ import {
   previousCalendarRange,
   weekStartISO,
 } from "@/lib/finance/calendar";
+import {
+  aggregateCategoryTotals,
+  aggregateDailyActivity,
+  aggregateMerchantActivity,
+} from "@/lib/finance/analytics";
+import { completeSeries } from "@/lib/finance/chart-data";
 
 const MAX_RANGE_DAYS = 400;
 
@@ -92,10 +98,21 @@ export async function GET(request: Request) {
         ),
       current.db
         .select({
+          occurredOn: transactions.occurredOn,
           kind: transactions.kind,
           amount: transactions.amount,
+          categoryId: transactions.categoryId,
+          categoryName: categories.name,
+          merchant: transactions.merchant,
         })
         .from(transactions)
+        .innerJoin(
+          categories,
+          and(
+            eq(transactions.categoryId, categories.id),
+            eq(categories.profileId, current.profile.id),
+          ),
+        )
         .where(
           and(
             ...scoped,
@@ -128,22 +145,16 @@ export async function GET(request: Request) {
       }));
 
     const totals = { income: new Decimal(0), expenses: new Decimal(0) };
-    const categoryTotals = new Map<string, { name: string; amount: Decimal }>();
     for (const row of periodRows) {
       const amount = new Decimal(row.amount);
       if (row.kind === "income") totals.income = totals.income.plus(amount);
-      else {
-        totals.expenses = totals.expenses.plus(amount);
-        const prior = categoryTotals.get(row.categoryId);
-        categoryTotals.set(row.categoryId, {
-          name: row.categoryName,
-          amount: (prior?.amount ?? new Decimal(0)).plus(amount),
-        });
-      }
+      else totals.expenses = totals.expenses.plus(amount);
     }
-    const categoryBreakdown = [...categoryTotals.values()]
-      .map((entry) => ({ ...entry, amount: entry.amount.toFixed(2) }))
-      .sort((a, b) => new Decimal(b.amount).comparedTo(a.amount));
+    const categoryBreakdown = aggregateCategoryTotals(periodRows, "expense");
+    const incomeCategories = aggregateCategoryTotals(periodRows, "income");
+    const priorCategories = aggregateCategoryTotals(prevRows, "expense");
+    const dailyActivity = aggregateDailyActivity(periodRows);
+    const merchants = aggregateMerchantActivity(periodRows);
 
     const recentTransactions = [...periodRows]
       .sort((a, b) => {
@@ -280,7 +291,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       period: { from, to, grain },
       currency: current.profile.currency,
-      series,
+      series: completeSeries(series, from, to, grain),
       totals: {
         income: totals.income.toFixed(2),
         expenses: totals.expenses.toFixed(2),
@@ -301,6 +312,10 @@ export async function GET(request: Request) {
         ),
       },
       categories: categoryBreakdown,
+      priorCategories,
+      incomeCategories,
+      dailyActivity,
+      merchants,
       transactions: recentTransactions,
       budgets: budgetWidgets,
       goals: goalWidgets,
