@@ -122,6 +122,34 @@ export function useReducedMotion(): boolean {
   );
 }
 
+const COMPACT_CHART_QUERY = "(max-width: 720px)";
+
+function subscribeToCompactChart(callback: () => void) {
+  const query = window.matchMedia(COMPACT_CHART_QUERY);
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+
+function getCompactChart() {
+  return window.matchMedia(COMPACT_CHART_QUERY).matches;
+}
+
+function getServerCompactChart() {
+  return false;
+}
+
+/**
+ * Matches the advanced-analytics responsive breakpoint in studio.css. Used for
+ * SVG text that cannot be resized with CSS without breaking ECharts wrapping.
+ */
+export function useCompactChartViewport(): boolean {
+  return useSyncExternalStore(
+    subscribeToCompactChart,
+    getCompactChart,
+    getServerCompactChart,
+  );
+}
+
 export function escapeMarkup(value: unknown): string {
   return String(value ?? "").replace(
     /[&<>"']/g,

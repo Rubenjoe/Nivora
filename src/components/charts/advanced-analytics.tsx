@@ -16,6 +16,7 @@ import {
   escapeMarkup,
   formatBucketLabel,
   useChartPalette,
+  useCompactChartViewport,
   useReducedMotion,
   type ChartPalette,
 } from "@/components/charts/chart-theme";
@@ -298,6 +299,7 @@ function TreemapView({
   reduced: boolean;
 }) {
   const router = useRouter();
+  const compact = useCompactChartViewport();
   const [focusCategoryId, setFocusCategoryId] = useState<string | null>(null);
   const treemap = useMemo(
     () => buildCategoryTreemap(data.categories, data.merchants),
@@ -356,14 +358,15 @@ function TreemapView({
           upperLabel: {
             show: true,
             height: 22,
-            color: palette.text,
-            fontSize: 10,
+            color: palette.card,
+            fontSize: compact ? 10 : 10.5,
             fontWeight: 500,
           },
           label: {
-            color: palette.text,
-            fontSize: 9.5,
-            lineHeight: 11.5,
+            color: palette.card,
+            fontSize: compact ? 9.5 : 11.5,
+            lineHeight: compact ? 11.5 : 14,
+            fontWeight: 500,
             overflow: "breakAll",
           },
           itemStyle: {
@@ -388,7 +391,7 @@ function TreemapView({
         },
       ],
     }),
-    [data.currency, palette, reduced, chartData],
+    [data.currency, palette, reduced, chartData, compact],
   );
 
   if (!treemap.canRender) {

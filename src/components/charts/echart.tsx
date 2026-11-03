@@ -39,7 +39,7 @@ export function EChart({
         chart = initChart(containerRef.current);
         chartRef.current = chart;
         observer = new ResizeObserver(() => {
-          chart?.resize({ animation: { duration: 0 } });
+          if (active) chart?.resize({ animation: { duration: 0 } });
         });
         observer.observe(containerRef.current);
         setReady(true);
@@ -52,6 +52,7 @@ export function EChart({
       active = false;
       observer?.disconnect();
       chart?.dispose();
+      chart = null;
       chartRef.current = null;
     };
   }, []);
