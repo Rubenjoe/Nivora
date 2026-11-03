@@ -416,3 +416,17 @@ Not yet implemented in this run: budgets; savings goals; recurring transactions;
 - Confirmed both routes render in the local dev browser and `npx tsc --noEmit` passes. No console errors were visible during route rendering; browser console inspection itself was not available through the current browser control surface.
 - Removed the unused `src/components/auth-form.tsx`. Retained `src/app/auth.css` because `src/app/layout.tsx` still imports it and layout changes were expressly excluded.
 - No dependencies, layout, globals, API handlers, or demo financial data were changed.
+
+### UI polish and command palette upgrade (2026-11-03)
+
+- Integrated the supplied motion stylesheet, route-loading skeleton, route template, and command palette; connected the palette and shared theme toggle to the existing app shell. Kept the local header sizing fix and route-change overlay cleanup while reconciling the supplied app-shell copy.
+- Completed command-palette modal keyboard behavior: Escape closes from any focus target, Tab stays inside, opener focus is restored, and the compact-height layout scrolls within the viewport. Kept all visuals on existing theme tokens.
+- Fixed the existing untracked `src/app/ui-preview/page.tsx` TypeScript narrowing for `fetch` inputs (`Request`/`URL`/string) so the project typecheck could complete; preview behavior/data were left intact.
+- **Verification:** `npm run typecheck`, targeted ESLint, targeted Prettier, and `npm run build` passed. Build retains the three existing dynamic-filesystem tracing warnings in `src/lib/db/configuration.ts`. No dependencies, API/auth, database, or landing-page behavior changed.
+
+### Nivora polish motion layer (2026-11-03)
+
+- Added the supplied motion polish stylesheet, refined loading skeleton, and page-in template; connected the first-session brand splash, route progress line, and pointer spotlight to the existing `AppShell` without removing the existing navigation or command-palette improvements. Theme bootstrap now suppresses repeat splash playback within a tab session.
+- Applied `AnimatedMoney` to the real dashboard totals. Intermediate values now use Decimal arithmetic and the final display still uses the exact stored value through `formatMoney`. Route progress tracks query-string navigation as well as pathname changes.
+- Aligned the local, synthetic `/ui-preview` summary markup with the real dashboard's responsive structure after browser review showed its mobile labels colliding. Existing preview values and behaviors remain unchanged.
+- **Verification:** `npm run typecheck`, targeted ESLint, targeted Prettier, and `npm run build` passed. The build retains the three existing dynamic-filesystem tracing warnings in `src/lib/db/configuration.ts`. Browser review at the available narrow viewport confirmed the navigation stays compact and the preview summary no longer overlaps. No package, API/auth, database, or landing-page behavior changed.

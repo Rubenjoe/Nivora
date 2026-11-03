@@ -12,6 +12,8 @@ import "./auth.css";
 import "./theme-system.css";
 import "./reports.css";
 import "./studio.css";
+import "./nivora-motion.css";
+import "./motion-polish.css";
 
 export const metadata: Metadata = {
   title: "Nivora — Clarity for every financial decision",
@@ -28,7 +30,7 @@ export const viewport = {
   ],
 };
 
-const themeBootstrap = `(function(){try{var t=localStorage.getItem("nivora-theme");if(t!=="light"&&t!=="dark"){t="dark";}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}catch(e){}})();`;
+const themeBootstrap = `(function(){try{var t=localStorage.getItem("nivora-theme");if(t!=="light"&&t!=="dark"){t="dark";}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;if(sessionStorage.getItem("nivora-splash")==="seen"){document.documentElement.dataset.splash="seen";}}catch(e){}})();`;
 
 export default function RootLayout({
   children,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import {
   ArrowUpRight,
   BarChart3,
@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   Repeat,
+  Search,
   Settings2,
   Wallet,
   X,
@@ -21,6 +22,10 @@ import {
 
 import { BrandWordmark } from "@/components/brand-wordmark";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CommandPalette } from "@/components/ui/command-palette";
+import { BrandSplash } from "@/components/ui/brand-splash";
+import { PointerSpotlight } from "@/components/ui/pointer-spotlight";
+import { RouteProgress } from "@/components/ui/route-progress";
 import {
   sessionInitials,
   useNavSession,
@@ -168,6 +173,17 @@ export function AppShell({
   const showPrivateGate =
     session.status === "anonymous" && pathname !== "/" && pathname !== "/help";
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cmdkOpen, setCmdkOpen] = useState(false);
+  const [overlayPath, setOverlayPath] = useState(pathname);
+  const authenticated = session.status === "authenticated";
+
+  /* Close overlays when the route changes without a synchronous effect:
+     React's documented "adjust state during render" pattern. */
+  if (overlayPath !== pathname) {
+    setOverlayPath(pathname);
+    setDrawerOpen(false);
+    setCmdkOpen(false);
+  }
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -177,6 +193,20 @@ export function AppShell({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [drawerOpen]);
+
+  /* ⌘K / Ctrl+K opens the command palette (authenticated workspace only). */
+  useEffect(() => {
+    if (!authenticated) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setDrawerOpen(false);
+        setCmdkOpen((open) => !open);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [authenticated]);
 
   const navigationLinks = (
     <>
@@ -190,6 +220,8 @@ export function AppShell({
             key={href}
             className={`premium-nav-item${active ? " active" : ""}`}
             href={href}
+            title={label}
+            aria-label={label}
             aria-current={active ? "page" : undefined}
             onClick={() => setDrawerOpen(false)}
           >
@@ -203,6 +235,11 @@ export function AppShell({
 
   return (
     <main className="premium-shell">
+      <BrandSplash />
+      <Suspense fallback={null}>
+        <RouteProgress />
+      </Suspense>
+      <PointerSpotlight />
       <a className="skip-link" href="#main-content">
         Skip to main content
       </a>
@@ -217,7 +254,7 @@ export function AppShell({
       <header className="premium-app-header">
         <div className="premium-header-inner">
           <div className="premium-header-brand">
-            {session.status === "authenticated" && (
+            {authenticated && (
               <button
                 type="button"
                 className="premium-mobile-toggle"
@@ -231,16 +268,26 @@ export function AppShell({
             )}
             <BrandLogo />
           </div>
-          {session.status === "authenticated" && (
+          {authenticated && (
             <nav aria-label="Main navigation" className="premium-nav-desktop">
               {navigationLinks}
             </nav>
           )}
           <div className="premium-header-actions">
+            {authenticated && (
+              <button
+                type="button"
+                className="nivora-search-trigger"
+                aria-label="Search pages and actions (Command K)"
+                aria-keyshortcuts="Meta+K Control+K"
+                onClick={() => setCmdkOpen(true)}
+              >
+                <Search size={15} aria-hidden="true" />
+                <kbd aria-hidden="true">⌘K</kbd>
+              </button>
+            )}
             <ThemeToggle />
-            {(session.status === "authenticated" ||
-              pathname === "/" ||
-              pathname === "/help") && (
+            {(authenticated || pathname === "/" || pathname === "/help") && (
               <TopBarAuth
                 session={session}
                 onSignedOut={() => void refresh()}
@@ -301,6 +348,10 @@ export function AppShell({
           {showPrivateGate ? <PublicFeatureGate /> : children}
         </div>
       </section>
+
+      {authenticated && (
+        <CommandPalette open={cmdkOpen} onClose={() => setCmdkOpen(false)} />
+      )}
     </main>
   );
 }

@@ -7,6 +7,7 @@ import { ArrowUpRight, Plus, PieChart, Sparkles, X } from "lucide-react";
 import { CashFlowChart } from "@/components/cash-flow-chart";
 import { DashboardGreeting } from "@/components/dashboard-greeting";
 import { DonutChart } from "@/components/donut-chart";
+import { AnimatedMoney } from "@/components/ui/animated-number";
 import { SpendingCalendar } from "@/components/charts/spending-calendar";
 import {
   fillDailyActivity,
@@ -423,7 +424,11 @@ export function DashboardOverview({
         <div className="position-lead">
           <p className="meta-label">Net cash flow · {rangeLabel(period)}</p>
           <p className="position-value">
-            {dashboard ? formatMoney(net, currency) : "—"}
+            {dashboard ? (
+              <AnimatedMoney value={net} currency={currency} />
+            ) : (
+              "—"
+            )}
           </p>
           <p className="position-note">
             {comparisonNote(dashboard?.comparison?.netDelta) ??
@@ -453,7 +458,13 @@ export function DashboardOverview({
               <span className="position-dot income" aria-hidden="true" />
               Total income
             </dt>
-            <dd>{dashboard ? formatMoney(income, currency) : "—"}</dd>
+            <dd>
+              {dashboard ? (
+                <AnimatedMoney value={income} currency={currency} />
+              ) : (
+                "—"
+              )}
+            </dd>
             <p>{comparisonNote(dashboard?.comparison?.incomeDelta) ?? "—"}</p>
           </div>
           <div>
@@ -461,7 +472,13 @@ export function DashboardOverview({
               <span className="position-dot expense" aria-hidden="true" />
               Total expenses
             </dt>
-            <dd>{dashboard ? formatMoney(expenses, currency) : "—"}</dd>
+            <dd>
+              {dashboard ? (
+                <AnimatedMoney value={expenses} currency={currency} />
+              ) : (
+                "—"
+              )}
+            </dd>
             <p>{comparisonNote(dashboard?.comparison?.expenseDelta) ?? "—"}</p>
           </div>
         </dl>

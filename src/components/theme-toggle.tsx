@@ -42,6 +42,11 @@ function applyTheme(theme: Theme, persist = false) {
   subscribers.forEach((subscriber) => subscriber());
 }
 
+/** Shared so the ⌘K command palette can switch themes too. */
+export function toggleTheme() {
+  applyTheme(currentTheme === "dark" ? "light" : "dark", true);
+}
+
 function subscribe(callback: () => void) {
   subscribers.add(callback);
   const onStorage = (event: StorageEvent) => {
@@ -76,16 +81,15 @@ export function ThemeToggle() {
     <button
       className="theme-toggle"
       type="button"
-      onClick={() => applyTheme(isDark ? "light" : "dark", true)}
+      onClick={() => toggleTheme()}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       aria-pressed={isDark}
       title={isDark ? "Use light theme" : "Use dark theme"}
     >
-      {isDark ? (
-        <Sun size={17} aria-hidden="true" />
-      ) : (
-        <Moon size={17} aria-hidden="true" />
-      )}
+      {/* Keyed by theme so the swap replays the nv-icon-in spin (motion §6). */}
+      <span key={theme} className="nv-theme-icon" aria-hidden="true">
+        {isDark ? <Sun size={17} /> : <Moon size={17} />}
+      </span>
     </button>
   );
 }
