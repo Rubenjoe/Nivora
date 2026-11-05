@@ -11,9 +11,12 @@ export default async function SettingsPage() {
   if (!session.profile) {
     return (
       <div className="mx-auto max-w-xl p-8 text-center">
-        <h1 className="text-xl font-semibold mb-2">Account storage unavailable</h1>
+        <h1 className="text-xl font-semibold mb-2">
+          Account storage unavailable
+        </h1>
         <p className="text-sm text-neutral-400">
-          Your profile could not be loaded from storage. Check your database connection and try again.
+          Your profile could not be loaded from storage. Check your database
+          connection and try again.
         </p>
       </div>
     );

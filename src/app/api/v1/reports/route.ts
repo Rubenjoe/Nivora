@@ -15,6 +15,7 @@ import {
 } from "@/lib/finance/api-errors";
 import {
   generateMonthlyReport,
+  getLocalTodayISO,
   getMonthBounds,
   type MonthlyReportResult,
 } from "@/lib/finance/monthly-report";
@@ -52,7 +53,9 @@ function buildReportCsv(report: MonthlyReportResult): string {
       report.totals.income,
       report.priorTotals.income,
       report.comparison.incomeDelta ?? "N/A",
-      new Decimal(report.totals.income).minus(report.priorTotals.income).toFixed(2),
+      new Decimal(report.totals.income)
+        .minus(report.priorTotals.income)
+        .toFixed(2),
     ],
     [
       "Total Expenses",

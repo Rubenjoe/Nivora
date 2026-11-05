@@ -22,7 +22,14 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 15 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    },
+  },
 };
 
 export function AuthForm({
@@ -82,7 +89,10 @@ export function AuthForm({
 
   return (
     <main className="flex min-h-screen w-full bg-zinc-950 text-zinc-100 font-sans overflow-hidden selection:bg-indigo-500/30">
-      <a className="sr-only focus:not-sr-only focus:absolute focus:p-4 focus:bg-zinc-900 focus:text-white z-50" href="#auth-form">
+      <a
+        className="sr-only focus:not-sr-only focus:absolute focus:p-4 focus:bg-zinc-900 focus:text-white z-50"
+        href="#auth-form"
+      >
         Skip to sign-in form
       </a>
 
@@ -105,17 +115,25 @@ export function AuthForm({
             inactiveZone={0.1}
           />
 
-          <motion.div variants={itemVariants} className="mb-10 flex items-center justify-between">
+          <motion.div
+            variants={itemVariants}
+            className="mb-10 flex items-center justify-between"
+          >
             <Link
               href="/"
               className="group flex items-center text-sm font-medium text-zinc-400 transition-colors hover:text-zinc-100"
             >
-              <ArrowLeft size={16} className="mr-2 transition-transform group-hover:-translate-x-1" />
+              <ArrowLeft
+                size={16}
+                className="mr-2 transition-transform group-hover:-translate-x-1"
+              />
               Back to overview
             </Link>
             <div className="flex items-center gap-3">
               <span className="flex items-center text-lg font-bold tracking-tight text-white">
-                <span className="mr-1 flex h-6 w-6 items-center justify-center rounded bg-indigo-500 text-xs text-white">n</span>
+                <span className="mr-1 flex h-6 w-6 items-center justify-center rounded bg-indigo-500 text-xs text-white">
+                  n
+                </span>
                 nivora
               </span>
               <ThemeToggle />
@@ -128,7 +146,9 @@ export function AuthForm({
             </p>
             <h1 className="mb-3 text-3xl font-semibold tracking-tight text-white">
               <SmokeType
-                text={register ? "A clearer picture starts here." : "Welcome back."}
+                text={
+                  register ? "A clearer picture starts here." : "Welcome back."
+                }
               />
             </h1>
             <p className="mb-8 text-sm text-zinc-400 leading-relaxed">
@@ -138,9 +158,17 @@ export function AuthForm({
             </p>
           </motion.div>
 
-          <motion.form variants={containerVariants} id="auth-form" onSubmit={submit} className="flex flex-col gap-5">
+          <motion.form
+            variants={containerVariants}
+            id="auth-form"
+            onSubmit={submit}
+            className="flex flex-col gap-5"
+          >
             {register && (
-              <motion.label variants={itemVariants} className="flex flex-col gap-2 text-sm font-medium text-zinc-300">
+              <motion.label
+                variants={itemVariants}
+                className="flex flex-col gap-2 text-sm font-medium text-zinc-300"
+              >
                 Your name
                 <input
                   name="name"
@@ -153,7 +181,10 @@ export function AuthForm({
               </motion.label>
             )}
 
-            <motion.label variants={itemVariants} className="flex flex-col gap-2 text-sm font-medium text-zinc-300">
+            <motion.label
+              variants={itemVariants}
+              className="flex flex-col gap-2 text-sm font-medium text-zinc-300"
+            >
               Email address
               <input
                 name="email"
@@ -166,7 +197,10 @@ export function AuthForm({
               />
             </motion.label>
 
-            <motion.label variants={itemVariants} className="flex flex-col gap-2 text-sm font-medium text-zinc-300">
+            <motion.label
+              variants={itemVariants}
+              className="flex flex-col gap-2 text-sm font-medium text-zinc-300"
+            >
               Password
               <input
                 name="password"
@@ -180,13 +214,23 @@ export function AuthForm({
             </motion.label>
 
             {error && (
-              <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="text-sm text-red-400" role="alert">
+              <motion.p
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="text-sm text-red-400"
+                role="alert"
+              >
                 {error}
               </motion.p>
             )}
 
             {notice && (
-              <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="text-sm text-emerald-400" role="status">
+              <motion.p
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="text-sm text-emerald-400"
+                role="status"
+              >
                 {notice}
               </motion.p>
             )}
@@ -204,21 +248,30 @@ export function AuthForm({
                   <LoaderCircle size={16} className="mr-2 animate-spin" />
                   Please wait…
                 </>
+              ) : register ? (
+                "Create account"
               ) : (
-                register ? "Create account" : "Sign in"
+                "Sign in"
               )}
             </motion.button>
           </motion.form>
 
-          <motion.div variants={itemVariants} className="mt-8 flex flex-col gap-4 text-center">
+          <motion.div
+            variants={itemVariants}
+            className="mt-8 flex flex-col gap-4 text-center"
+          >
             <p className="text-sm text-zinc-400">
               {register ? "Already have an account?" : "New to Nivora?"}{" "}
-              <Link href={register ? "/sign-in" : "/sign-up"} className="font-semibold text-indigo-400 transition-colors hover:text-indigo-300">
+              <Link
+                href={register ? "/sign-in" : "/sign-up"}
+                className="font-semibold text-indigo-400 transition-colors hover:text-indigo-300"
+              >
                 {register ? "Sign in" : "Create an account"}
               </Link>
             </p>
             <p className="text-xs text-zinc-600">
-              Your password is sent securely to Supabase Auth and is never stored by Nivora.
+              Your password is sent securely to Supabase Auth and is never
+              stored by Nivora.
             </p>
           </motion.div>
         </motion.div>
@@ -231,12 +284,12 @@ export function AuthForm({
           animate={{
             scale: [1, 1.2, 1],
             rotate: [0, 90, 0],
-            opacity: [0.3, 0.5, 0.3]
+            opacity: [0.3, 0.5, 0.3],
           }}
           transition={{
             duration: 15,
             repeat: Infinity,
-            ease: "linear"
+            ease: "linear",
           }}
           className="absolute h-[600px] w-[600px] rounded-full bg-gradient-to-tr from-indigo-900/40 via-purple-900/20 to-transparent blur-3xl"
         />

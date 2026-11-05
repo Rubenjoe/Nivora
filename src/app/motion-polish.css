@@ -101,7 +101,7 @@ body {
 /* ── Staggered entrances ───────────────────────────────────────────────── */
 /* studio.css animates whole wrappers; here the children cascade instead. */
 
-@keyframes nv-rise {
+@keyframes nv-polish-rise {
   from {
     opacity: 0;
     transform: translateY(12px) scale(0.985);
@@ -122,11 +122,13 @@ body {
 .position-side > div,
 .premium-summary-grid > *,
 .summary-grid > * {
-  animation: nv-rise 520ms var(--ease-expo) calc(var(--enter) + 0ms) backwards;
+  animation: nv-polish-rise 520ms var(--ease-expo) calc(var(--enter) + 0ms)
+    backwards;
 }
 
 .position-panel {
-  animation: nv-rise 560ms var(--ease-expo) calc(var(--enter) + 40ms) backwards;
+  animation: nv-polish-rise 560ms var(--ease-expo) calc(var(--enter) + 40ms)
+    backwards;
 }
 
 .signal-strip > li:nth-child(1) {
@@ -167,7 +169,8 @@ body {
 .premium-recent-list > li,
 .premium-category-list > li,
 .premium-widget-list > li {
-  animation: nv-rise 460ms var(--ease-expo) calc(var(--enter) + 0ms) backwards;
+  animation: nv-polish-rise 460ms var(--ease-expo) calc(var(--enter) + 0ms)
+    backwards;
 }
 
 .premium-recent-list > li:nth-child(1),
@@ -217,7 +220,7 @@ body {
 
 /* ── Skeletons with shimmer ────────────────────────────────────────────── */
 
-@keyframes nv-shimmer {
+@keyframes nv-polish-shimmer {
   to {
     background-position: -200% 0;
   }
@@ -238,7 +241,7 @@ body {
     100% 100%;
   animation:
     skeleton-in 380ms ease both,
-    nv-shimmer 1.8s linear 380ms infinite;
+    nv-polish-shimmer 1.8s linear 380ms infinite;
 }
 
 :root[data-theme="light"] .dashboard-chart-skeleton span,
@@ -330,7 +333,7 @@ body {
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-card);
   background: var(--color-card);
-  animation: nv-rise 480ms var(--ease-expo) both;
+  animation: nv-polish-rise 480ms var(--ease-expo) both;
 }
 
 .nv-skel-hero {
@@ -466,35 +469,9 @@ body {
   transform: scale(0.965);
 }
 
-.premium-btn-premium,
-.premium-btn-primary {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.premium-btn-premium::after,
-.premium-btn-primary::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(
-    105deg,
-    transparent 35%,
-    rgb(255 255 255 / 26%) 50%,
-    transparent 65%
-  );
-  transform: translateX(-120%);
-  transition: transform 700ms var(--ease-out);
-}
+/* Button sheen is provided by nivora-motion.css. */
 
 @media (hover: hover) {
-  .premium-btn-premium:hover::after,
-  .premium-btn-primary:hover::after {
-    transform: translateX(120%);
-  }
-
   .premium-btn-premium:hover,
   .premium-btn-primary:hover {
     box-shadow: var(--shadow-gradient);

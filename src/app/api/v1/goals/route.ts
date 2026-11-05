@@ -40,7 +40,11 @@ async function goalProgress(db: Database, row: GoalRow, currency: string) {
   return goalProgressFromAmount(row, aggregate?.saved ?? "0", currency);
 }
 
-function goalProgressFromAmount(row: GoalRow, savedAmount: string, currency: string) {
+function goalProgressFromAmount(
+  row: GoalRow,
+  savedAmount: string,
+  currency: string,
+) {
   const saved = new Decimal(savedAmount);
   const target = new Decimal(row.targetAmount);
   const percent = target.isZero()

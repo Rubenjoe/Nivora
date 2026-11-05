@@ -1,5 +1,16 @@
 # Nivora implementation progress
 
+### Vercel build-failure remediation (2026-11-05)
+
+Local commit `bf5e0bd` ("Did some bug fixes") failed the Vercel build; the push was reverted on GitHub (remote `origin/main` back at `faefab9`) while the local files kept the broken state. An external review produced `nivora-bugfixes.patch`, which was applied to the clean working tree via `git apply` with all four hunks matching exactly. The fixes, confirmed present after application:
+
+- `src/app/api/v1/reports/route.ts` — added the missing `getLocalTodayISO` import from `@/lib/finance/monthly-report` (it is used at the no-`?month=` code path, so loading a report without the query parameter threw at runtime).
+- `src/lib/finance/currency-change.ts` — the `Database` type changed from `ReturnType<typeof getDatabase>` to `Pick<ReturnType<typeof getDatabase>, "select">`, since `api/v1/profile` passes a transaction handle into the helper. Runtime behavior unchanged.
+- `src/components/auth-form.tsx` — `ease: [0.16, 1, 0.3, 1] as [number, number, number, number]` to satisfy the `motion` transition type (was 7 build type errors).
+- `src/app/motion-polish.css` — renamed `nv-rise`/`nv-shimmer` to `nv-polish-rise`/`nv-polish-shimmer` so they cannot be overridden by `nivora-motion.css`, which defines the same keyframe names and loads later; removed the duplicate `.premium-btn-premium/.premium-btn-primary::after` sheen block (the sheen is already provided by `nivora-motion.css`), keeping the hover box-shadow.
+
+Because the patch introduced lines Prettier would reformat, `npm run format` was run over its `src/**` scope. This also surfaced that five files (`settings/page.tsx`, `api/v1/budgets/route.ts`, `api/v1/goals/route.ts`, `greeting.test.ts`, `monthly-report.ts`) were not Prettier-clean in `bf5e0bd`; those changes are formatting-only. Full re-verification after the patch: typecheck ✅, tests 81/81 ✅, lint (0 errors/warnings) ✅, `format:check` full pass ✅, production build ✅ (only the three documented `configuration.ts` dynamic-filesystem-tracing warnings). The build produced the complete route manifest, so the failure modes that broke the pushed commit (missing import → type error; easing-array type errors; transaction-handle type mismatch) are all resolved. Deployment path is unchanged: commit these working-tree changes as a new commit on `main` (do not amend `bf5e0bd`) and push — Vercel builds from the GitHub push.
+
 ### Repository cleanup and dead-code removal (2026-11-04)
 
 A full usage audit (all import paths, dynamic imports, route references, CSS coupling, and asset references) followed by a conservative cleanup: 18 confirmed-unused files removed, duplicate code consolidated. No feature, route, style behaviour, or financial logic changed.

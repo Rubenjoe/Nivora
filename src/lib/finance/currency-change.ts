@@ -8,7 +8,8 @@ import {
 } from "@/lib/db/schema";
 import type { getDatabase } from "@/lib/db";
 
-type Database = ReturnType<typeof getDatabase>;
+// Accept both the pooled database and a transaction handle.
+type Database = Pick<ReturnType<typeof getDatabase>, "select">;
 
 export function canChangeProfileCurrency(
   currentCurrency: string,

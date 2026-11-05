@@ -44,7 +44,11 @@ async function budgetWithProgress(
   return budgetProgressFromAmount(row, spent, currency);
 }
 
-function budgetProgressFromAmount(row: BudgetRow, spent: Decimal, currency: string) {
+function budgetProgressFromAmount(
+  row: BudgetRow,
+  spent: Decimal,
+  currency: string,
+) {
   const amount = new Decimal(row.amount);
   const percent = amount.isZero()
     ? 0

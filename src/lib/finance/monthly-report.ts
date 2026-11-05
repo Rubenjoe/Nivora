@@ -541,8 +541,8 @@ export function generateMonthlyReport({
       });
     }
 
-    return items.sort(
-      (a, b) => new Decimal(b.currentAmount).comparedTo(a.currentAmount),
+    return items.sort((a, b) =>
+      new Decimal(b.currentAmount).comparedTo(a.currentAmount),
     );
   };
 
@@ -909,7 +909,10 @@ export function generateMonthlyReport({
   }
 
   // Dominant spending category
-  if (topExpenseCategory && new Decimal(topExpenseCategory.currentAmount).greaterThan(0)) {
+  if (
+    topExpenseCategory &&
+    new Decimal(topExpenseCategory.currentAmount).greaterThan(0)
+  ) {
     highlights.push({
       type: "info",
       title: `Top Category: ${topExpenseCategory.categoryName}`,

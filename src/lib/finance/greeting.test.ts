@@ -36,10 +36,7 @@ test("falls back to a welcome without inventing a name", () => {
 
 test("handles null, empty, or invalid timezones safely using DEFAULT_TIMEZONE", () => {
   const date = new Date("2026-10-24T06:30:00Z");
-  assert.equal(
-    buildGreeting(date, "Priya", null),
-    "Good afternoon, Priya",
-  );
+  assert.equal(buildGreeting(date, "Priya", null), "Good afternoon, Priya");
   assert.equal(
     buildGreeting(date, "Priya", undefined),
     "Good afternoon, Priya",
