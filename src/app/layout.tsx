@@ -30,7 +30,7 @@ export const viewport = {
   ],
 };
 
-const themeBootstrap = `(function(){try{var t=localStorage.getItem("nivora-theme");if(t!=="light"&&t!=="dark"){t="dark";}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;if(sessionStorage.getItem("nivora-splash")==="seen"){document.documentElement.dataset.splash="seen";}}catch(e){}})();`;
+const themeBootstrap = `(function(){try{var t=localStorage.getItem("nivora-theme");if(t!=="light"&&t!=="dark"){t="dark";}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute("content",t==="dark"?"#070709":"#f7f7f4");});if(sessionStorage.getItem("nivora-splash")==="seen"){document.documentElement.dataset.splash="seen";}}catch(e){}})();`;
 
 export default function RootLayout({
   children,

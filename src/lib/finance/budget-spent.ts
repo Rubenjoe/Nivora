@@ -2,7 +2,6 @@ import Decimal from "decimal.js";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { transactions } from "@/lib/db/schema";
 import type { getDatabase } from "@/lib/db/index";
-import { monthEnd, monthStart, toISODate } from "@/lib/finance/periods";
 
 type Database = ReturnType<typeof getDatabase>;
 
@@ -13,9 +12,13 @@ export async function expenseTotalForBudget(
   periodMonth: string,
   categoryId: string | null,
 ) {
-  const anchor = new Date(`${periodMonth}T12:00:00`);
-  const from = toISODate(monthStart(anchor));
-  const to = toISODate(monthEnd(anchor));
+  const [yearStr, monthStr] = periodMonth.slice(0, 7).split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const from = `${year}-${pad(month)}-01`;
+  const to = `${year}-${pad(month)}-${pad(lastDay)}`;
   const filters = [
     eq(transactions.profileId, profileId),
     eq(transactions.currency, currency),

@@ -57,27 +57,10 @@ body {
   background-color: #070709;
 }
 
-.nivora-ambient-background {
-  position: fixed;
-  z-index: 0;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  opacity: 0.52;
-}
-
-.nivora-ambient-background .nivora-shooting-stars {
-  pointer-events: none;
-}
-
 .premium-shell,
 .auth-page {
   position: relative;
   z-index: 1;
-}
-
-:root[data-theme="light"] .nivora-ambient-background {
-  opacity: 0.22;
 }
 
 :root[data-theme="dark"] body {

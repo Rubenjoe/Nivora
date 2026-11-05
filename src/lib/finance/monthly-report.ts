@@ -542,7 +542,7 @@ export function generateMonthlyReport({
     }
 
     return items.sort(
-      (a, b) => parseFloat(b.currentAmount) - parseFloat(a.currentAmount),
+      (a, b) => new Decimal(b.currentAmount).comparedTo(a.currentAmount),
     );
   };
 
@@ -711,7 +711,7 @@ export function generateMonthlyReport({
   // 10. Top 5 Largest Expenses
   const topTransactions: TopTransactionItem[] = currentTransactions
     .filter((tx) => tx.kind === "expense" && tx.currency === currency)
-    .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount))
+    .sort((a, b) => new Decimal(b.amount).comparedTo(a.amount))
     .slice(0, 5)
     .map((tx) => ({
       id: tx.id,
@@ -778,7 +778,7 @@ export function generateMonthlyReport({
           : 0,
       };
     })
-    .sort((a, b) => parseFloat(b.totalSpent) - parseFloat(a.totalSpent))
+    .sort((a, b) => new Decimal(b.totalSpent).comparedTo(a.totalSpent))
     .slice(0, 8);
 
   // 12. Full Transaction Appendix (formatted for UI and CSV)
@@ -909,7 +909,7 @@ export function generateMonthlyReport({
   }
 
   // Dominant spending category
-  if (topExpenseCategory && parseFloat(topExpenseCategory.currentAmount) > 0) {
+  if (topExpenseCategory && new Decimal(topExpenseCategory.currentAmount).greaterThan(0)) {
     highlights.push({
       type: "info",
       title: `Top Category: ${topExpenseCategory.categoryName}`,

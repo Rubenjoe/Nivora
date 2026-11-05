@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import Decimal from "decimal.js";
-import { formatMoney } from "./money-format";
+import { currencyFractionDigits, formatMoney } from "./money-format";
 
 test("formats INR with en-IN grouping and two decimals", () => {
   assert.equal(formatMoney("1234567.5"), "₹12,34,567.50");
@@ -34,4 +34,18 @@ test("supports whole-number axis values and non-INR currencies", () => {
     formatMoney("1200", "USD", { minimumFractionDigits: 0 }),
     "$1,200",
   );
+});
+
+test("uses each currency's real minor-unit count by default", () => {
+  assert.equal(currencyFractionDigits("INR"), 2);
+  assert.equal(currencyFractionDigits("USD"), 2);
+  assert.equal(currencyFractionDigits("JPY"), 0);
+  assert.equal(currencyFractionDigits("KWD"), 3);
+  assert.equal(formatMoney("4500", "JPY").replace(/[^\d.,]/g, ""), "4,500");
+  assert.match(formatMoney("4500.25", "KWD"), /4,500\.250$/u);
+});
+
+test("falls back safely for unknown currency codes", () => {
+  assert.equal(currencyFractionDigits("XYZ"), 2);
+  assert.equal(formatMoney("10", "XYZ").replace(/[^\d.,]/g, ""), "10.00");
 });

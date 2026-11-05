@@ -10,6 +10,7 @@ import {
 } from "@/lib/finance/api-errors";
 import { hasTrustedOrigin } from "@/lib/security/origin";
 import { expenseTotalForBudget } from "@/lib/finance/budget-spent";
+import { currencyFractionDigits } from "@/lib/finance/money-format";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -42,10 +43,11 @@ async function enrich(
   const percent = amount.isZero()
     ? 0
     : Number(spent.div(amount).mul(100).toFixed(1));
+  const digits = currencyFractionDigits(currency);
   return {
     budget: row,
-    spent: spent.toFixed(2),
-    remaining: amount.minus(spent).toFixed(2),
+    spent: spent.toFixed(digits),
+    remaining: amount.minus(spent).toFixed(digits),
     percent,
     overBudget: spent.greaterThan(amount),
     thresholdAlert: percent >= row.warningThresholdPercent,

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { categories, profiles } from "./schema";
 import type { getDatabase } from "./index";
 
@@ -63,24 +63,4 @@ export async function resolveProfile(
 
     return profile;
   });
-}
-
-export async function categoryOwnedBy(
-  db: Database,
-  profileId: string,
-  categoryId: string,
-  kind: "income" | "expense",
-) {
-  const [category] = await db
-    .select({ id: categories.id })
-    .from(categories)
-    .where(
-      and(
-        eq(categories.id, categoryId),
-        eq(categories.profileId, profileId),
-        eq(categories.kind, kind),
-      ),
-    )
-    .limit(1);
-  return category ?? null;
 }

@@ -1,6 +1,7 @@
 import { DashboardOverview } from "@/components/dashboard-overview";
 import { getNavSession } from "@/lib/auth/server-session";
 import { buildGreeting } from "@/lib/finance/greeting";
+import { DEFAULT_TIMEZONE } from "@/lib/finance/periods";
 
 export default async function OverviewPage() {
   const session = await getNavSession();
@@ -14,7 +15,11 @@ export default async function OverviewPage() {
       : null;
   const timezone =
     session.status === "authenticated"
-      ? (session.profile?.timezone ?? null)
+      ? (session.profile?.timezone ?? DEFAULT_TIMEZONE)
+      : null;
+  const currency =
+    session.status === "authenticated"
+      ? (session.profile?.currency ?? null)
       : null;
   const initialGreeting = buildGreeting(new Date(), displayName, timezone);
 
@@ -22,6 +27,7 @@ export default async function OverviewPage() {
     <DashboardOverview
       authenticated={session.status === "authenticated"}
       mode={mode}
+      currency={currency}
       displayName={displayName}
       timezone={timezone}
       initialGreeting={initialGreeting}

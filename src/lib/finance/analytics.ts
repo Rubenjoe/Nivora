@@ -95,7 +95,7 @@ export function aggregateMerchantActivity(
     if (row.kind !== "expense") continue;
     const merchant = row.merchant?.trim();
     if (!merchant) continue;
-    const key = `${row.categoryId}:${merchant.toLocaleLowerCase()}`;
+    const key = `${row.categoryId}:${merchant.toLowerCase()}`;
     const existing = byMerchantAndCategory.get(key);
     byMerchantAndCategory.set(key, {
       merchant: existing?.merchant ?? merchant,

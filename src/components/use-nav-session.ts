@@ -1,18 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { SessionProfile } from "@/lib/auth/session-contract";
 
-export type ClientNavSessionProfile = {
-  id: string;
-  displayName: string;
-  currency: string;
-  mode: "simple" | "pro";
-  timezone: string;
-  dateFormat: string;
-  appearance: string;
-  budgetAlertsEnabled: boolean;
-  goalAlertsEnabled: boolean;
-};
+/** The nav session profile is the same contract the server returns. */
+export type ClientNavSessionProfile = SessionProfile;
 
 export type ClientNavSession =
   | { status: "loading" }

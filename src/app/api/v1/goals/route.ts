@@ -10,6 +10,7 @@ import {
 } from "@/lib/finance/api-errors";
 import { hasTrustedOrigin } from "@/lib/security/origin";
 import type { getDatabase } from "@/lib/db";
+import { currencyFractionDigits } from "@/lib/finance/money-format";
 
 type Database = ReturnType<typeof getDatabase>;
 type GoalRow = typeof savingsGoals.$inferSelect;
@@ -24,7 +25,7 @@ const goalInput = z.object({
   targetDate: z.iso.date().nullable().optional(),
 });
 
-async function goalProgress(db: Database, row: GoalRow) {
+async function goalProgress(db: Database, row: GoalRow, currency: string) {
   const [aggregate] = await db
     .select({
       saved: sql<string>`coalesce(sum(${goalContributions.amount}), 0)::text`,
@@ -36,19 +37,20 @@ async function goalProgress(db: Database, row: GoalRow) {
         eq(goalContributions.profileId, row.profileId),
       ),
     );
-  return goalProgressFromAmount(row, aggregate?.saved ?? "0");
+  return goalProgressFromAmount(row, aggregate?.saved ?? "0", currency);
 }
 
-function goalProgressFromAmount(row: GoalRow, savedAmount: string) {
+function goalProgressFromAmount(row: GoalRow, savedAmount: string, currency: string) {
   const saved = new Decimal(savedAmount);
   const target = new Decimal(row.targetAmount);
   const percent = target.isZero()
     ? 0
     : Number(saved.div(target).mul(100).toFixed(1));
+  const digits = currencyFractionDigits(currency);
   return {
     goal: row,
-    saved: saved.toFixed(2),
-    remaining: target.minus(saved).toFixed(2),
+    saved: saved.toFixed(digits),
+    remaining: target.minus(saved).toFixed(digits),
     percent,
     complete: saved.greaterThanOrEqualTo(target),
   };
@@ -77,7 +79,11 @@ export async function GET() {
       contributionRows.map((row) => [row.goalId, row.saved]),
     );
     const enriched = rows.map((row) =>
-      goalProgressFromAmount(row, savedByGoal.get(row.id) ?? "0"),
+      goalProgressFromAmount(
+        row,
+        savedByGoal.get(row.id) ?? "0",
+        current.profile.currency,
+      ),
     );
     return NextResponse.json({
       currency: current.profile.currency,
@@ -116,7 +122,11 @@ export async function POST(request: Request) {
         { error: "A goal with this name already exists." },
         { status: 409 },
       );
-    const enriched = await goalProgress(current.db, created);
+    const enriched = await goalProgress(
+      current.db,
+      created,
+      current.profile.currency,
+    );
     return NextResponse.json(enriched, { status: 201 });
   } catch (cause) {
     return handleFinanceRouteError(cause);

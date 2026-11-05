@@ -48,37 +48,44 @@ export async function PATCH(request: Request) {
     );
     if (!parsed.success)
       return NextResponse.json({ error: "Invalid settings." }, { status: 400 });
-    if (
-      parsed.data.currency &&
-      parsed.data.currency !== current.profile.currency
-    ) {
-      const hasFinancialRecords = await profileHasFinancialRecords(
-        current.db,
-        current.profile.id,
-      );
+    const updated = await current.db.transaction(async (tx) => {
       if (
-        !canChangeProfileCurrency(
-          current.profile.currency,
-          parsed.data.currency,
-          hasFinancialRecords,
-        )
+        parsed.data.currency &&
+        parsed.data.currency !== current.profile.currency
       ) {
-        return NextResponse.json(
-          {
-            error:
-              "Preferred currency cannot be changed while financial records exist. Nivora does not convert or re-denominate saved amounts.",
-            code: "currency_change_requires_empty_financial_data",
-          },
-          { status: 409 },
+        const hasFinancialRecords = await profileHasFinancialRecords(
+          tx,
+          current.profile.id,
         );
+        if (
+          !canChangeProfileCurrency(
+            current.profile.currency,
+            parsed.data.currency,
+            hasFinancialRecords,
+          )
+        ) {
+          return { conflict: true as const };
+        }
       }
+      const [row] = await tx
+        .update(profiles)
+        .set({ ...parsed.data, updatedAt: new Date() })
+        .where(eq(profiles.id, current.profile.id))
+        .returning();
+      return { conflict: false as const, profile: row };
+    });
+
+    if (updated.conflict) {
+      return NextResponse.json(
+        {
+          error:
+            "Preferred currency cannot be changed while financial records exist. Nivora does not convert or re-denominate saved amounts.",
+          code: "currency_change_requires_empty_financial_data",
+        },
+        { status: 409 },
+      );
     }
-    const [updated] = await current.db
-      .update(profiles)
-      .set({ ...parsed.data, updatedAt: new Date() })
-      .where(eq(profiles.id, current.profile.id))
-      .returning();
-    return NextResponse.json({ profile: updated });
+    return NextResponse.json({ profile: updated.profile });
   } catch (cause) {
     return handleFinanceRouteError(cause);
   }

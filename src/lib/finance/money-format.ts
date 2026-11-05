@@ -17,6 +17,30 @@ type CurrencyAffixes = {
 };
 
 const affixCache = new Map<string, CurrencyAffixes>();
+const fractionDigitsCache = new Map<string, number>();
+
+/**
+ * The currency's real minor-unit count (2 for INR/USD/EUR, 0 for JPY,
+ * 3 for KWD/BHD), resolved from Intl with a safe fallback for unknown codes.
+ */
+export function currencyFractionDigits(currency: string): number {
+  const cached = fractionDigitsCache.get(currency);
+  if (cached !== undefined) return cached;
+  let digits: number;
+  try {
+    const options = new Intl.NumberFormat("en", {
+      style: "currency",
+      currency,
+    }).resolvedOptions();
+    digits =
+      options.maximumFractionDigits ?? options.minimumFractionDigits ?? 2;
+    if (!Number.isFinite(digits) || digits < 0 || digits > 20) digits = 2;
+  } catch {
+    digits = 2;
+  }
+  fractionDigitsCache.set(currency, digits);
+  return digits;
+}
 
 function currencyAffixes(
   currency: string,
@@ -62,8 +86,8 @@ export function formatMoney(
   options: MoneyFormatOptions = {},
 ): string {
   const {
-    minimumFractionDigits = 2,
-    maximumFractionDigits = 2,
+    minimumFractionDigits = currencyFractionDigits(currency),
+    maximumFractionDigits = currencyFractionDigits(currency),
     sign,
     signDisplay = "auto",
     currencyDisplay = "symbol",
@@ -96,16 +120,4 @@ export function formatMoney(
 
   const affixes = currencyAffixes(currency, currencyDisplay);
   return `${valueSign}${affixes.prefix}${groupedWhole}${fractionPart}${affixes.suffix}`;
-}
-
-/** Locale-aware plain number formatting for chart axes (no currency prefix). */
-export function formatCompactAmount(
-  amount: string | number | Decimal,
-  maximumFractionDigits = 0,
-): string {
-  const value = new Decimal(amount);
-  return new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits,
-    minimumFractionDigits: 0,
-  }).format(BigInt(value.abs().toFixed(0)));
 }

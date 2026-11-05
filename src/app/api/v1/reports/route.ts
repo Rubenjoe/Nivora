@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import Decimal from "decimal.js";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import {
   budgets,
@@ -51,9 +52,7 @@ function buildReportCsv(report: MonthlyReportResult): string {
       report.totals.income,
       report.priorTotals.income,
       report.comparison.incomeDelta ?? "N/A",
-      (
-        parseFloat(report.totals.income) - parseFloat(report.priorTotals.income)
-      ).toFixed(2),
+      new Decimal(report.totals.income).minus(report.priorTotals.income).toFixed(2),
     ],
     [
       "Total Expenses",
@@ -67,9 +66,7 @@ function buildReportCsv(report: MonthlyReportResult): string {
       report.totals.net,
       report.priorTotals.net,
       report.comparison.netDelta ?? "N/A",
-      (
-        parseFloat(report.totals.net) - parseFloat(report.priorTotals.net)
-      ).toFixed(2),
+      new Decimal(report.totals.net).minus(report.priorTotals.net).toFixed(2),
     ],
     [
       "Savings Rate",
@@ -250,9 +247,8 @@ export async function GET(request: Request) {
       }
       month = monthParam;
     } else {
-      const now = new Date();
-      const pad = (n: number) => String(n).padStart(2, "0");
-      month = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+      const todayISO = getLocalTodayISO(current.profile.timezone);
+      month = todayISO.slice(0, 7);
     }
 
     const bounds = getMonthBounds(month);

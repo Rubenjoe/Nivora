@@ -1,28 +1,18 @@
+export const DEFAULT_TIMEZONE = "Asia/Kolkata";
+
 export function monthStart(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
 }
 
 export function monthEnd(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
 }
 
 export function toISODate(date: Date) {
-  const local = new Date(date);
-  local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
-  return local.toISOString().slice(0, 10);
-}
-
-export function monthKey(date = new Date()) {
-  const start = monthStart(date);
-  return toISODate(start).slice(0, 7);
-}
-
-export function periodMonthISO(date = new Date()) {
-  return `${monthKey(date)}-01`;
-}
-
-export function addMonths(date: Date, count: number) {
-  return new Date(date.getFullYear(), date.getMonth() + count, 1);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function addRecurrenceDue(

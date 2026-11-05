@@ -10,6 +10,7 @@ import {
 } from "@/lib/finance/api-errors";
 import { hasTrustedOrigin } from "@/lib/security/origin";
 import type { getDatabase } from "@/lib/db";
+import { currencyFractionDigits } from "@/lib/finance/money-format";
 
 type Database = ReturnType<typeof getDatabase>;
 type Context = { params: Promise<{ id: string }> };
@@ -29,6 +30,7 @@ const goalPatch = z.object({
 async function goalProgress(
   db: Database,
   row: typeof savingsGoals.$inferSelect,
+  currency: string,
 ) {
   const rows = await db
     .select({ amount: goalContributions.amount })
@@ -39,10 +41,11 @@ async function goalProgress(
   const percent = target.isZero()
     ? 0
     : Number(saved.div(target).mul(100).toFixed(1));
+  const digits = currencyFractionDigits(currency);
   return {
     goal: row,
-    saved: saved.toFixed(2),
-    remaining: target.minus(saved).toFixed(2),
+    saved: saved.toFixed(digits),
+    remaining: target.minus(saved).toFixed(digits),
     percent,
     complete: saved.greaterThanOrEqualTo(target),
   };
@@ -75,7 +78,11 @@ export async function GET(_request: Request, context: Context) {
         ),
       )
       .orderBy(goalContributions.contributedOn);
-    const enriched = await goalProgress(current.db, row);
+    const enriched = await goalProgress(
+      current.db,
+      row,
+      current.profile.currency,
+    );
     return NextResponse.json({ ...enriched, contributions });
   } catch (cause) {
     return handleFinanceRouteError(cause);
@@ -107,7 +114,11 @@ export async function PATCH(request: Request, context: Context) {
       .returning();
     if (!updated)
       return NextResponse.json({ error: "Goal not found." }, { status: 404 });
-    const enriched = await goalProgress(current.db, updated);
+    const enriched = await goalProgress(
+      current.db,
+      updated,
+      current.profile.currency,
+    );
     return NextResponse.json(enriched);
   } catch (cause) {
     return handleFinanceRouteError(cause);

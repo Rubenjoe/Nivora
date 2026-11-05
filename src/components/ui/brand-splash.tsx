@@ -11,6 +11,10 @@ import { BrandWordmark } from "@/components/brand-wordmark";
  */
 export function BrandSplash() {
   useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.documentElement.dataset.splash = "seen";
+      return;
+    }
     try {
       sessionStorage.setItem("nivora-splash", "seen");
     } catch {
@@ -19,7 +23,15 @@ export function BrandSplash() {
   }, []);
 
   return (
-    <div className="nv-splash" aria-hidden="true">
+    <div
+      className="nv-splash"
+      aria-hidden="true"
+      onAnimationEnd={(event) => {
+        if (event.animationName === "nv-splash-out") {
+          document.documentElement.dataset.splash = "seen";
+        }
+      }}
+    >
       <div className="nv-splash-core">
         <span className="nv-splash-ring" />
         <BrandWordmark className="nv-splash-mark" />

@@ -4,18 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getDatabase } from "@/lib/db";
 import { resolveProfile } from "@/lib/db/ownership";
 import { DatabaseConfigurationError } from "@/lib/db/configuration";
+import type { SessionProfile } from "@/lib/auth/session-contract";
 
-export type NavSessionProfile = {
-  id: string;
-  displayName: string;
-  currency: string;
-  mode: "simple" | "pro";
-  timezone: string;
-  dateFormat: string;
-  appearance: string;
-  budgetAlertsEnabled: boolean;
-  goalAlertsEnabled: boolean;
-};
+export type NavSessionProfile = SessionProfile;
 
 export type NavSession =
   | { status: "anonymous" }
@@ -78,18 +69,3 @@ export const getNavSession = cache(async (): Promise<NavSession> => {
     };
   }
 });
-
-export function sessionInitials(
-  session: Extract<NavSession, { status: "authenticated" }>,
-) {
-  const label =
-    session.profile?.displayName?.trim() ||
-    session.user.name.trim() ||
-    session.user.email?.split("@")[0] ||
-    "You";
-  const parts = label.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
-  }
-  return label.slice(0, 2).toUpperCase();
-}

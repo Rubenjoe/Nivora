@@ -2,17 +2,19 @@
 
 import Decimal from "decimal.js";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Plus, PieChart, Sparkles, X } from "lucide-react";
 import { CashFlowChart } from "@/components/cash-flow-chart";
 import { DashboardGreeting } from "@/components/dashboard-greeting";
 import { DonutChart } from "@/components/donut-chart";
 import { AnimatedMoney } from "@/components/ui/animated-number";
+import { useSlidingIndicator } from "@/components/ui/use-sliding-indicator";
 import { SpendingCalendar } from "@/components/charts/spending-calendar";
 import {
   fillDailyActivity,
   type DailyActivity,
 } from "@/lib/finance/chart-data";
+import { shiftCalendarDate } from "@/lib/finance/calendar";
 import { formatMoney } from "@/lib/finance/money-format";
 import { assignCategoryColors } from "@/lib/finance/category-colors";
 
@@ -71,6 +73,11 @@ const DASHBOARD_RANGES = [
 
 type DashboardRange = (typeof DASHBOARD_RANGES)[number]["key"];
 
+const SHORT_DATE_FORMAT = new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+});
+
 function rangeLabel(range: DashboardRange) {
   return (
     DASHBOARD_RANGES.find((option) => option.key === range)?.label ??
@@ -88,6 +95,56 @@ function dateISO(date: Date) {
   const localDate = new Date(date);
   localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
   return localDate.toISOString().slice(0, 10);
+}
+
+/** Today's calendar date (YYYY-MM-DD) in the profile timezone, not the device's. */
+function timeZoneISODate(date: Date, timeZone: string | null): string {
+  if (timeZone) {
+    try {
+      const formatted = new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(date);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(formatted)) return formatted;
+    } catch {
+      // Invalid stored timezone: fall back to the viewer's device clock.
+    }
+  }
+  return dateISO(date);
+}
+
+function lastDayOfMonthISO(year: number, month: number): string {
+  // `Date.UTC(year, month, 0)` is the last day of 1-based `month`.
+  return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+}
+
+/**
+ * Period boundaries are resolved as calendar dates in the profile timezone so
+ * "this month" and rolling windows agree with the greeting and the recorded
+ * days even when the user's device clock sits in a different timezone.
+ */
+function resolvePeriodRange(
+  period: DashboardRange,
+  timezone: string | null,
+): { from: string; to: string } {
+  const today = timeZoneISODate(new Date(), timezone);
+  const [year = 0, month = 1] = today.slice(0, 7).split("-").map(Number);
+  const paddedMonth = String(month).padStart(2, "0");
+  if (period === "this-month") {
+    return { from: `${year}-${paddedMonth}-01`, to: today };
+  }
+  if (period === "last-month") {
+    const [previousYear, previousMonth] =
+      month === 1 ? [year - 1, 12] : [year, month - 1];
+    return {
+      from: `${previousYear}-${String(previousMonth).padStart(2, "0")}-01`,
+      to: lastDayOfMonthISO(previousYear, previousMonth),
+    };
+  }
+  const days = period === "last-7-days" ? 6 : 29;
+  return { from: shiftCalendarDate(today, -days), to: today };
 }
 
 function ChartSkeleton({ tall = false }: { tall?: boolean }) {
@@ -123,84 +180,81 @@ function transactionHref(
 async function readDashboard(
   period: DashboardRange,
   mode: "simple" | "pro",
+  timezone: string | null,
+  signal: AbortSignal,
 ): Promise<DashboardData> {
-  const now = new Date();
-  const start = new Date(now);
-  let end = new Date(now);
-  if (period === "this-month") {
-    start.setDate(1);
-  } else if (period === "last-month") {
-    start.setFullYear(now.getFullYear(), now.getMonth() - 1, 1);
-    end = new Date(now.getFullYear(), now.getMonth(), 0);
-  } else {
-    if (period === "last-7-days") {
-      start.setDate(now.getDate() - 7);
-      end.setDate(now.getDate() - 1);
-    } else {
-      start.setDate(now.getDate() - 29);
-    }
-  }
+  const { from, to } = resolvePeriodRange(period, timezone);
   const query = new URLSearchParams({
-    from: dateISO(start),
-    to: dateISO(end),
+    from,
+    to,
     mode,
   });
-  const [analyticsResponse, recurringResponse] = await Promise.all([
-    fetch(`/api/v1/analytics?${query}`, { cache: "no-store" }),
-    mode === "pro"
-      ? fetch("/api/v1/recurring", { cache: "no-store" }).catch(() => null)
-      : Promise.resolve(null),
-  ]);
-  const analytics = (await analyticsResponse.json()) as DashboardData & {
-    error?: string;
-  };
+  const analyticsResponse = await fetch(`/api/v1/analytics?${query}`, {
+    cache: "no-store",
+    signal,
+  });
+  const analytics = (await analyticsResponse.json().catch(() => null)) as
+    | (DashboardData & {
+        error?: string;
+      })
+    | null;
   if (!analyticsResponse.ok) {
     if (analyticsResponse.status === 401) {
       throw new Error("Sign in to see your private financial overview.");
     }
     throw new Error(
-      analytics.error ?? "Your financial summary is unavailable.",
+      analytics?.error ?? "Your financial summary is unavailable.",
     );
   }
-  let upcoming: DashboardData["upcoming"] = [];
-  if (recurringResponse?.ok) {
-    const recurringData = (await recurringResponse.json()) as {
-      schedules?: {
-        schedule: {
-          id: string;
-          merchant: string | null;
-          amount: string;
-          nextDueDate: string;
-          status: string;
-        };
-        categoryName: string;
-      }[];
-    };
-    upcoming = (recurringData.schedules ?? [])
-      .filter((row) => row.schedule.status === "active")
-      .slice(0, 4)
-      .map((row) => ({
-        id: row.schedule.id,
-        name: row.schedule.merchant ?? row.categoryName,
-        amount: row.schedule.amount,
-        nextDueDate: row.schedule.nextDueDate,
-      }));
+  if (!analytics || typeof analytics !== "object") {
+    throw new Error("Your financial summary is unavailable.");
   }
-  return {
-    ...analytics,
-    upcoming,
-  } as DashboardData;
+  return analytics;
+}
+
+async function readUpcoming(signal: AbortSignal) {
+  const response = await fetch("/api/v1/recurring", {
+    cache: "no-store",
+    signal,
+  });
+  if (!response.ok) return [] satisfies NonNullable<DashboardData["upcoming"]>;
+  const recurringData = (await response.json().catch(() => null)) as {
+    schedules?: {
+      schedule: {
+        id: string;
+        merchant: string | null;
+        amount: string;
+        nextDueDate: string;
+        status: string;
+      };
+      categoryName: string;
+    }[];
+  } | null;
+  if (!Array.isArray(recurringData?.schedules)) return [];
+  const upcoming: DashboardData["upcoming"] = recurringData.schedules
+    .filter((row) => row.schedule.status === "active")
+    .slice(0, 4)
+    .map((row) => ({
+      id: row.schedule.id,
+      name: row.schedule.merchant ?? row.categoryName,
+      amount: row.schedule.amount,
+      nextDueDate: row.schedule.nextDueDate,
+    }));
+  return upcoming;
 }
 
 export function DashboardOverview({
   authenticated,
   mode,
+  currency: profileCurrency,
   displayName,
   timezone,
   initialGreeting,
 }: {
   authenticated: boolean;
   mode: "simple" | "pro";
+  /** The user's currency, resolved on the server so amounts never flash the default. */
+  currency: string | null;
   displayName: string | null;
   timezone: string | null;
   initialGreeting: string;
@@ -209,25 +263,35 @@ export function DashboardOverview({
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [period, setPeriod] = useState<DashboardRange>("this-month");
   const [loading, setLoading] = useState(true);
+  const [dataPeriod, setDataPeriod] = useState<DashboardRange>("this-month");
+  const [dataMode, setDataMode] = useState<"simple" | "pro">(mode);
+  const [upcoming, setUpcoming] = useState<DashboardData["upcoming"]>([]);
   const [reviewNotification, setReviewNotification] = useState<{
     isReady: boolean;
     previousMonth: string;
     previousMonthLabel: string;
   } | null>(null);
   const [reviewDismissed, setReviewDismissed] = useState(false);
+  const rangeControlRef = useSlidingIndicator<HTMLDivElement>(
+    ".dashboard-range-option.active",
+    period,
+  );
 
   useEffect(() => {
     if (!authenticated) return;
     let active = true;
     fetch("/api/v1/reports/status")
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => (res.ok ? res.json().catch(() => null) : null))
       .then((data) => {
         if (!active || !data?.isReady) return;
         const dismissedKey = `nivora-dismissed-review-${data.previousMonth}`;
-        if (
-          typeof window !== "undefined" &&
-          localStorage.getItem(dismissedKey) === "true"
-        ) {
+        let wasDismissed = false;
+        try {
+          wasDismissed = localStorage.getItem(dismissedKey) === "true";
+        } catch {
+          // The notification still works when storage is unavailable.
+        }
+        if (wasDismissed) {
           setReviewDismissed(true);
         }
         setReviewNotification(data);
@@ -239,49 +303,73 @@ export function DashboardOverview({
   }, [authenticated]);
 
   function dismissReviewBanner() {
-    if (reviewNotification && typeof window !== "undefined") {
-      localStorage.setItem(
-        `nivora-dismissed-review-${reviewNotification.previousMonth}`,
-        "true",
-      );
+    if (reviewNotification) {
+      try {
+        localStorage.setItem(
+          `nivora-dismissed-review-${reviewNotification.previousMonth}`,
+          "true",
+        );
+      } catch {
+        // Dismiss for this page view even when persistence is unavailable.
+      }
     }
     setReviewDismissed(true);
   }
 
   useEffect(() => {
     if (!authenticated) return;
-    let active = true;
-    readDashboard(period, mode)
+    const controller = new AbortController();
+    readDashboard(period, mode, timezone, controller.signal)
       .then((result) => {
-        if (active) {
-          setDashboard(result);
-          setDashboardError(null);
-        }
+        setDashboard(result);
+        setDataPeriod(period);
+        setDataMode(mode);
+        setDashboardError(null);
       })
       .catch((cause: unknown) => {
-        if (active) {
-          setDashboardError(
-            cause instanceof Error
-              ? cause.message
-              : "Your financial summary is unavailable.",
-          );
-        }
+        if (controller.signal.aborted) return;
+        setDashboardError(
+          cause instanceof Error
+            ? cause.message
+            : "Your financial summary is unavailable.",
+        );
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       });
     return () => {
-      active = false;
+      controller.abort();
     };
-  }, [authenticated, period, mode]);
+  }, [authenticated, period, mode, timezone]);
 
-  const categoryColors = assignCategoryColors(
-    (dashboard?.categories ?? []).map((category) => category.name),
+  useEffect(() => {
+    if (!authenticated || mode !== "pro") return;
+    const controller = new AbortController();
+    readUpcoming(controller.signal)
+      .then(setUpcoming)
+      .catch(() => {
+        if (!controller.signal.aborted) setUpcoming([]);
+      });
+    return () => controller.abort();
+  }, [authenticated, mode]);
+
+  const categoryColors = useMemo(
+    () =>
+      assignCategoryColors(
+        (dashboard?.categories ?? []).map((category) => category.name),
+      ),
+    [dashboard?.categories],
   );
 
-  const totalCategorySpend = (dashboard?.categories ?? []).reduce(
-    (sum, category) => sum.plus(category.amount),
-    new Decimal(0),
+  const totalCategorySpend = useMemo(
+    () =>
+      (dashboard?.categories ?? []).reduce(
+        (sum, category) => sum.plus(category.amount),
+        new Decimal(0),
+      ),
+    [dashboard?.categories],
   );
 
   const calendarDays =
@@ -297,7 +385,15 @@ export function DashboardOverview({
         }))
       : [];
 
-  const currency = dashboard?.currency ?? "INR";
+  const shownPeriod = dashboard ? dataPeriod : period;
+  const isRefreshing = Boolean(
+    dashboard && (dataPeriod !== period || dataMode !== mode),
+  );
+
+  /* The profile currency arrives from the server, so the very first paint
+     formats with the user's currency. The dashboard payload and, only as a
+     last resort, the default cover cases where no profile exists. */
+  const currency = profileCurrency ?? dashboard?.currency ?? "INR";
   const income = dashboard?.totals.income ?? "0";
   const expenses = dashboard?.totals.expenses ?? "0";
   const net = dashboard?.totals.net ?? "0";
@@ -351,10 +447,11 @@ export function DashboardOverview({
           displayName={displayName}
           timezone={timezone}
           initialGreeting={initialGreeting}
-          period={period}
+          period={shownPeriod}
         />
         <div className="dashboard-head-actions">
           <div
+            ref={rangeControlRef}
             className="dashboard-range-control"
             role="group"
             aria-label="Overview time range"
@@ -369,8 +466,6 @@ export function DashboardOverview({
                 aria-pressed={period === option.key}
                 onClick={() => {
                   if (period === option.key) return;
-                  setLoading(true);
-                  setDashboard(null);
                   setDashboardError(null);
                   setPeriod(option.key);
                 }}
@@ -384,6 +479,14 @@ export function DashboardOverview({
           </Link>
         </div>
       </div>
+
+      {dashboardError && dashboard ? (
+        <p className="dashboard-refresh-error" role="status">
+          Could not load {rangeLabel(period)}. Showing your{" "}
+          {rangeLabel(dataPeriod)}
+          results instead.
+        </p>
+      ) : null}
 
       {/* In-App Notification: Previous Month Money Review Ready */}
       {reviewNotification?.isReady && !reviewDismissed && (
@@ -420,9 +523,15 @@ export function DashboardOverview({
         </aside>
       )}
 
-      <section className="position-panel" aria-label="Financial summary">
+      <section
+        className="position-panel"
+        aria-label="Financial summary"
+        aria-busy={isRefreshing}
+      >
         <div className="position-lead">
-          <p className="meta-label">Net cash flow · {rangeLabel(period)}</p>
+          <p className="meta-label">
+            Net cash flow · {rangeLabel(shownPeriod)}
+          </p>
           <p className="position-value">
             {dashboard ? (
               <AnimatedMoney value={net} currency={currency} />
@@ -444,11 +553,11 @@ export function DashboardOverview({
           <div className="flow-balance-legend">
             <span>
               <i className="flow-key income" aria-hidden="true" />
-              {formatMoney(income, currency)} in
+              {dashboard ? formatMoney(income, currency) : "—"} in
             </span>
             <span>
               <i className="flow-key expense" aria-hidden="true" />
-              {formatMoney(expenses, currency)} out
+              {dashboard ? formatMoney(expenses, currency) : "—"} out
             </span>
           </div>
         </div>
@@ -485,7 +594,11 @@ export function DashboardOverview({
       </section>
 
       {hasSignals && (
-        <ul className="signal-strip" aria-label="Signals for this period">
+        <ul
+          className="signal-strip"
+          aria-label="Signals for this period"
+          aria-busy={isRefreshing}
+        >
           {topCategory && (
             <li>
               <span>Top category</span>
@@ -514,17 +627,19 @@ export function DashboardOverview({
         </ul>
       )}
 
-      <div className="premium-dashboard-grid">
-        <section className="premium-card chart-panel">
+      <div className="premium-dashboard-grid" aria-busy={isRefreshing}>
+        <section className="premium-card chart-panel" aria-busy={isRefreshing}>
           <div className="section-head">
             <div>
               <h2>Cash flow</h2>
-              <p>Income and spending, {rangeLabel(period).toLowerCase()}.</p>
+              <p>
+                Income and spending, {rangeLabel(shownPeriod).toLowerCase()}.
+              </p>
             </div>
           </div>
           {loading ? (
             <ChartSkeleton tall />
-          ) : dashboardError ? (
+          ) : dashboardError && !dashboard ? (
             <div className="premium-error">
               <h3>Your figures stay private</h3>
               <p>{dashboardError}</p>
@@ -537,7 +652,10 @@ export function DashboardOverview({
           )}
         </section>
 
-        <section className="premium-card breakdown-panel">
+        <section
+          className="premium-card breakdown-panel"
+          aria-busy={isRefreshing}
+        >
           <div className="section-head">
             <div>
               <h2>Where it went</h2>
@@ -546,6 +664,10 @@ export function DashboardOverview({
           </div>
           {loading ? (
             <ChartSkeleton tall />
+          ) : dashboardError && !dashboard ? (
+            <div className="premium-error compact">
+              <p>{dashboardError}</p>
+            </div>
           ) : !dashboard?.categories.length ? (
             <div className="premium-empty premium-empty-compact">
               <span className="premium-empty-symbol">
@@ -618,7 +740,10 @@ export function DashboardOverview({
         </section>
       </div>
 
-      <section className="premium-card dashboard-calendar-panel">
+      <section
+        className="premium-card dashboard-calendar-panel"
+        aria-busy={isRefreshing}
+      >
         <div className="section-head">
           <div>
             <h2>Daily spending</h2>
@@ -635,7 +760,7 @@ export function DashboardOverview({
         </div>
         {loading ? (
           <ChartSkeleton />
-        ) : dashboardError ? (
+        ) : dashboardError && !dashboard ? (
           <div className="premium-error compact">
             <p>{dashboardError}</p>
           </div>
@@ -643,15 +768,18 @@ export function DashboardOverview({
           <SpendingCalendar
             days={calendarDays}
             currency={currency}
-            caption={`Spending by day · ${rangeLabel(period)}`}
+            caption={`Spending by day · ${rangeLabel(shownPeriod)}`}
           />
         ) : (
           <p className="premium-empty-note">No calendar days in this range.</p>
         )}
       </section>
 
-      <div className="dashboard-lower">
-        <section className="premium-card premium-recent-panel">
+      <div className="dashboard-lower" aria-busy={isRefreshing}>
+        <section
+          className="premium-card premium-recent-panel"
+          aria-busy={isRefreshing}
+        >
           <div className="section-head">
             <div>
               <h2>Recent activity</h2>
@@ -675,10 +803,9 @@ export function DashboardOverview({
                     <strong>{transaction.merchant || categoryName}</strong>
                     <small>
                       {categoryName} ·{" "}
-                      {new Intl.DateTimeFormat("en", {
-                        month: "short",
-                        day: "numeric",
-                      }).format(new Date(`${transaction.occurredOn}T12:00:00`))}
+                      {SHORT_DATE_FORMAT.format(
+                        new Date(`${transaction.occurredOn}T12:00:00`),
+                      )}
                     </small>
                   </span>
                   <strong
@@ -704,8 +831,15 @@ export function DashboardOverview({
           )}
         </section>
 
-        <aside className="dashboard-rail" aria-label="Plans and progress">
-          <section className="premium-card plans-panel">
+        <aside
+          className="dashboard-rail"
+          aria-label="Plans and progress"
+          aria-busy={isRefreshing}
+        >
+          <section
+            className="premium-card plans-panel"
+            aria-busy={isRefreshing}
+          >
             <div className="section-head">
               <div>
                 <h2>Plans in motion</h2>
@@ -790,7 +924,7 @@ export function DashboardOverview({
             ) : null}
           </section>
 
-          {mode === "pro" && dashboard?.upcoming?.length ? (
+          {mode === "pro" && upcoming?.length ? (
             <section className="premium-card upcoming-panel">
               <div className="section-head">
                 <div>
@@ -799,15 +933,14 @@ export function DashboardOverview({
                 </div>
               </div>
               <ul className="premium-widget-list">
-                {dashboard.upcoming.map((item) => (
+                {upcoming.map((item) => (
                   <li key={item.id} className="upcoming-row">
                     <div>
                       <strong>{item.name}</strong>
                       <span>
-                        {new Intl.DateTimeFormat("en", {
-                          month: "short",
-                          day: "numeric",
-                        }).format(new Date(`${item.nextDueDate}T12:00:00`))}
+                        {SHORT_DATE_FORMAT.format(
+                          new Date(`${item.nextDueDate}T12:00:00`),
+                        )}
                       </span>
                     </div>
                     <strong>{formatMoney(item.amount, currency)}</strong>

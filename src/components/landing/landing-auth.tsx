@@ -85,7 +85,9 @@ function Reveal({
     <motion.div
       className={className}
       initial={reduced ? undefined : { opacity: 0, y, filter: "blur(10px)" }}
-      whileInView={reduced ? undefined : { opacity: 1, y: 0, filter: "blur(0px)" }}
+      whileInView={
+        reduced ? undefined : { opacity: 1, y: 0, filter: "blur(0px)" }
+      }
       viewport={{ once: true, margin: "-12% 0px" }}
       transition={{ type: "spring", stiffness: 80, damping: 18, delay }}
     >
@@ -222,17 +224,29 @@ function Preloader({ onReveal }: { onReveal: () => void }) {
               <motion.span
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
-                transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                transition={{
+                  duration: 0.7,
+                  delay: 0.15,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
               />
               <motion.span
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
-                transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                transition={{
+                  duration: 0.7,
+                  delay: 0.3,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
               />
               <motion.span
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
-                transition={{ duration: 0.7, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                transition={{
+                  duration: 0.7,
+                  delay: 0.45,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
               />
             </div>
             <div className="lp-loader-word">nivora</div>
@@ -309,7 +323,10 @@ function Nav({ mode, play }: { mode: AuthMode; play: boolean }) {
         <Magnetic strength={0.22} className="lp-nav-magnet">
           <Link
             href="/sign-up"
-            className={cn("lp-nav-cta", mode === "register" && "lp-nav-cta-active")}
+            className={cn(
+              "lp-nav-cta",
+              mode === "register" && "lp-nav-cta-active",
+            )}
           >
             {mode === "register" ? "You're at the start" : "Get started"}
             <ArrowUpRight size={13} aria-hidden="true" />
@@ -418,7 +435,10 @@ function AuthCard({
         animate={play ? "show" : "hidden"}
         variants={{
           hidden: { opacity: 0 },
-          show: { opacity: 1, transition: { staggerChildren: 0.07, delayChildren: 0.7 } },
+          show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.07, delayChildren: 0.7 },
+          },
         }}
       >
         <motion.div className="lp-auth-head" variants={item}>
@@ -426,7 +446,9 @@ function AuthCard({
             {register ? "Create your account" : "Welcome back"}
           </p>
           <h2 className="lp-auth-title">
-            {register ? "A clearer picture starts here." : "Your private space awaits."}
+            {register
+              ? "A clearer picture starts here."
+              : "Your private space awaits."}
           </h2>
         </motion.div>
 
@@ -436,7 +458,10 @@ function AuthCard({
           </div>
         )}
         {notice && (
-          <div className="lp-auth-message lp-auth-message-success" role="status">
+          <div
+            className="lp-auth-message lp-auth-message-success"
+            role="status"
+          >
             <span aria-hidden="true">&#10003;</span> {notice}
           </div>
         )}
@@ -528,13 +553,21 @@ function AuthCard({
           >
             {busy ? (
               <>
-                <LoaderCircle size={15} className="lp-spin" aria-hidden="true" />
+                <LoaderCircle
+                  size={15}
+                  className="lp-spin"
+                  aria-hidden="true"
+                />
                 Please wait…
               </>
             ) : (
               <>
                 Sign{register ? " up" : " in"}
-                <ArrowRight size={13} className="lp-auth-submit-arrow" aria-hidden="true" />
+                <ArrowRight
+                  size={13}
+                  className="lp-auth-submit-arrow"
+                  aria-hidden="true"
+                />
               </>
             )}
           </motion.button>
@@ -782,8 +815,8 @@ function Workspaces() {
         </Reveal>
         <Reveal delay={0.16}>
           <p className="lp-lede">
-            Every part of your financial life gets its own quiet, precise
-            space — and every space talks to the others.
+            Every part of your financial life gets its own quiet, precise space
+            — and every space talks to the others.
           </p>
         </Reveal>
       </div>
@@ -860,8 +893,16 @@ function MoneyArt() {
 
   const ghostX = useTransform(scrollYProgress, [0, 1], ["7%", "-13%"]);
   const cloudY = useTransform(scrollYProgress, [0, 1], [80, -80]);
-  const haloScale = useTransform(scrollYProgress, [0.2, 0.55, 0.9], [0.7, 1.05, 0.85]);
-  const raysOpacity = useTransform(scrollYProgress, [0.15, 0.5, 0.85], [0, 1, 0]);
+  const haloScale = useTransform(
+    scrollYProgress,
+    [0.2, 0.55, 0.9],
+    [0.7, 1.05, 0.85],
+  );
+  const raysOpacity = useTransform(
+    scrollYProgress,
+    [0.15, 0.5, 0.85],
+    [0, 1, 0],
+  );
 
   const note1y = useTransform(scrollYProgress, [0.12, 0.75], [130, -190]);
   const note1r = useTransform(scrollYProgress, [0.12, 0.75], [-16, 10]);
@@ -877,37 +918,69 @@ function MoneyArt() {
   return (
     <section className="lp-section lp-art" id="lp-art" ref={ref}>
       <div className="lp-torn lp-torn-top" aria-hidden="true" />
-      <motion.span className="lp-ghost" style={{ x: ghostX }} aria-hidden="true">
+      <motion.span
+        className="lp-ghost"
+        style={{ x: ghostX }}
+        aria-hidden="true"
+      >
         CAPITAL
       </motion.span>
-      <motion.div className="lp-art-halo" style={{ scale: haloScale }} aria-hidden="true" />
-      <motion.div className="lp-art-rays" style={{ opacity: raysOpacity }} aria-hidden="true" />
+      <motion.div
+        className="lp-art-halo"
+        style={{ scale: haloScale }}
+        aria-hidden="true"
+      />
+      <motion.div
+        className="lp-art-rays"
+        style={{ opacity: raysOpacity }}
+        aria-hidden="true"
+      />
 
-      <motion.div className="lp-code-clouds" style={{ y: cloudY }} aria-hidden="true">
+      <motion.div
+        className="lp-code-clouds"
+        style={{ y: cloudY }}
+        aria-hidden="true"
+      >
         <span className="lp-code-strip lp-code-strip-a">
           await ledger.settle() → true · ₹ += intent · console.clarity(money)
         </span>
         <span className="lp-code-strip lp-code-strip-b">
-          while (focused) &#123; breathe &#125; · null → netWorth · export default Calm
+          while (focused) &#123; breathe &#125; · null → netWorth · export
+          default Calm
         </span>
         <span className="lp-code-strip lp-code-strip-c">
           false · promise · inflow &#8729; outflow · sort(transactions).by(calm)
         </span>
       </motion.div>
 
-      <motion.div className="lp-note lp-note-1" style={{ y: note1y, rotate: note1r }}>
+      <motion.div
+        className="lp-note lp-note-1"
+        style={{ y: note1y, rotate: note1r }}
+      >
         <Banknote currency="₹" />
       </motion.div>
-      <motion.div className="lp-note lp-note-2" style={{ y: note2y, rotate: note2r }}>
+      <motion.div
+        className="lp-note lp-note-2"
+        style={{ y: note2y, rotate: note2r }}
+      >
         <Banknote currency="$" />
       </motion.div>
-      <motion.div className="lp-note lp-note-3" style={{ y: note3y, rotate: note3r }}>
+      <motion.div
+        className="lp-note lp-note-3"
+        style={{ y: note3y, rotate: note3r }}
+      >
         <Banknote currency="€" />
       </motion.div>
-      <motion.div className="lp-note lp-note-4" style={{ y: note4y, rotate: note4r }}>
+      <motion.div
+        className="lp-note lp-note-4"
+        style={{ y: note4y, rotate: note4r }}
+      >
         <Banknote currency="£" />
       </motion.div>
-      <motion.div className="lp-note lp-note-5" style={{ y: note5y, rotate: note5r }}>
+      <motion.div
+        className="lp-note lp-note-5"
+        style={{ y: note5y, rotate: note5r }}
+      >
         <Banknote currency="₹" />
       </motion.div>
       <div className="lp-art-copy">
@@ -990,10 +1063,28 @@ function Numbers() {
         </Reveal>
       </div>
       <div className="lp-stat-grid">
-        <Stat value={6} label="focused workspaces" sub="Transactions to recurring — one home" />
-        <Stat value={0} label="ads, trackers, data sales" sub="Nothing about you leaves the vault" />
-        <Stat value={100} suffix="%" label="yours, private by design" sub="Your account, your eyes only" />
-        <Stat value={24} suffix="/7" label="in focus" sub="The full picture, whenever you look" />
+        <Stat
+          value={6}
+          label="focused workspaces"
+          sub="Transactions to recurring — one home"
+        />
+        <Stat
+          value={0}
+          label="ads, trackers, data sales"
+          sub="Nothing about you leaves the vault"
+        />
+        <Stat
+          value={100}
+          suffix="%"
+          label="yours, private by design"
+          sub="Your account, your eyes only"
+        />
+        <Stat
+          value={24}
+          suffix="/7"
+          label="in focus"
+          sub="The full picture, whenever you look"
+        />
       </div>
     </section>
   );
@@ -1018,8 +1109,8 @@ function CtaSection({ mode }: { mode: AuthMode }) {
       </Reveal>
       <Reveal delay={0.16}>
         <p className="lp-lede lp-cta-lede">
-          Your financial life deserves a quieter, sharper home.
-          Step in — the light is already on.
+          Your financial life deserves a quieter, sharper home. Step in — the
+          light is already on.
         </p>
       </Reveal>
       <Reveal delay={0.24} className="lp-cta-actions-reveal">
@@ -1027,7 +1118,10 @@ function CtaSection({ mode }: { mode: AuthMode }) {
           <Magnetic strength={0.3}>
             <Link
               href="/sign-up"
-              className={cn("lp-cta-button", mode === "register" && "lp-cta-button-active")}
+              className={cn(
+                "lp-cta-button",
+                mode === "register" && "lp-cta-button-active",
+              )}
             >
               Create your account
               <ArrowRight size={15} aria-hidden="true" />
@@ -1046,7 +1140,9 @@ function Footer() {
   return (
     <footer className="lp-footer">
       <BrandWordmark label="Nivora" className="lp-footer-brand" />
-      <p className="lp-footer-tag">A clear, private home for your financial decisions.</p>
+      <p className="lp-footer-tag">
+        A clear, private home for your financial decisions.
+      </p>
       <nav className="lp-footer-links" aria-label="Footer">
         <a href="#lp-workspaces">Workspaces</a>
         <span aria-hidden="true">·</span>
@@ -1136,21 +1232,25 @@ export function LandingAuth({
                 variants={container}
               >
                 <motion.p className="lp-hero-eyebrow" variants={item}>
-                  <span className="lp-hero-diamond" aria-hidden="true" />
-                  A clearer view of your money
+                  <span className="lp-hero-diamond" aria-hidden="true" />A
+                  clearer view of your money
                 </motion.p>
                 <motion.h1 className="lp-hero-title" variants={item}>
                   {register ? (
                     <>
                       Your finances,
                       <br />
-                      <span className="lp-gold lp-hero-title-accent">coming into focus.</span>
+                      <span className="lp-gold lp-hero-title-accent">
+                        coming into focus.
+                      </span>
                     </>
                   ) : (
                     <>
                       Your finances,
                       <br />
-                      <span className="lp-gold lp-hero-title-accent">in focus.</span>
+                      <span className="lp-gold lp-hero-title-accent">
+                        in focus.
+                      </span>
                     </>
                   )}
                 </motion.h1>
@@ -1182,7 +1282,9 @@ export function LandingAuth({
             <span className="lp-scroll-cue-line">
               <span className="lp-scroll-cue-dot" />
             </span>
-            <span className="lp-scroll-cue-text">Scroll — the story unfolds</span>
+            <span className="lp-scroll-cue-text">
+              Scroll — the story unfolds
+            </span>
           </motion.div>
         </section>
 

@@ -4,12 +4,17 @@ import { formatPercentageDelta } from "./comparison";
 
 test("percentage delta keeps the direction for higher and lower values", () => {
   assert.equal(formatPercentageDelta("120", "100"), "+20.0%");
-  assert.equal(formatPercentageDelta("80", "100"), "-20.0%");
+  assert.equal(formatPercentageDelta("80", "100"), "−20.0%");
 });
 
 test("percentage delta uses absolute prior magnitude for negative net values", () => {
   assert.equal(formatPercentageDelta("25", "-50"), "+150.0%");
-  assert.equal(formatPercentageDelta("-75", "-50"), "-50.0%");
+  assert.equal(formatPercentageDelta("-75", "-50"), "−50.0%");
+});
+
+test("no signed zero after rounding", () => {
+  assert.equal(formatPercentageDelta("100.01", "100"), "0.0%");
+  assert.equal(formatPercentageDelta("99.99", "100"), "0.0%");
 });
 
 test("zero prior values are not divided by zero or presented as a percentage", () => {

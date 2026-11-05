@@ -1,13 +1,15 @@
 export function escapeCsvCell(value: string) {
-  const sanitized = value.replace(/\r?\n/g, " ").trim();
+  const sanitized = value.replace(/[\r\n]+/g, " ").trim();
+  const isNumeric = /^-?\d+(?:\.\d+)?$/.test(sanitized);
   const formulaSafe =
-    sanitized.startsWith("=") ||
-    sanitized.startsWith("+") ||
-    sanitized.startsWith("-") ||
-    sanitized.startsWith("@")
+    !isNumeric &&
+    (sanitized.startsWith("=") ||
+      sanitized.startsWith("+") ||
+      sanitized.startsWith("-") ||
+      sanitized.startsWith("@"))
       ? `'${sanitized}`
       : sanitized;
-  if (/[",]/.test(formulaSafe)) {
+  if (/[",\r\n]/.test(formulaSafe)) {
     return `"${formulaSafe.replace(/"/g, '""')}"`;
   }
   return formulaSafe;

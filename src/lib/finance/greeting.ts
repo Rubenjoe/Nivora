@@ -1,3 +1,5 @@
+import { DEFAULT_TIMEZONE } from "@/lib/finance/periods";
+
 export type GreetingPeriod =
   "this-month" | "last-month" | "last-7-days" | "last-30-days";
 
@@ -8,17 +10,27 @@ export function greetingForHour(hour: number): string {
 }
 
 export function localHour(date: Date, timeZone?: string | null): number {
-  if (timeZone) {
+  const resolvedTimeZone = timeZone?.trim() || DEFAULT_TIMEZONE;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone: resolvedTimeZone,
+    }).formatToParts(date);
+    const hour = Number(parts.find((part) => part.type === "hour")?.value);
+    if (Number.isFinite(hour)) return hour % 24;
+  } catch {
+    // If timezone is invalid, try default timezone before local clock
     try {
       const parts = new Intl.DateTimeFormat("en-US", {
         hour: "numeric",
         hourCycle: "h23",
-        timeZone,
+        timeZone: DEFAULT_TIMEZONE,
       }).formatToParts(date);
       const hour = Number(parts.find((part) => part.type === "hour")?.value);
       if (Number.isFinite(hour)) return hour % 24;
     } catch {
-      // Invalid stored timezone: fall back to the viewer's browser timezone.
+      // Fall back to local hours
     }
   }
   return date.getHours();

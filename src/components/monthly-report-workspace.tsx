@@ -475,7 +475,7 @@ export function MonthlyReportWorkspace() {
                   if (!item) return null;
                   return (
                     <article
-                      className={`highlight-card magic-bento-card tone-${item.type}`}
+                      className={`highlight-card tone-${item.type}`}
                       onPointerMove={(event) => {
                         if (event.pointerType !== "mouse") return;
                         const bounds =

@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Decimal from "decimal.js";
-import { formatMoney } from "@/lib/finance/money-format";
+import {
+  currencyFractionDigits,
+  formatMoney,
+} from "@/lib/finance/money-format";
 
 type AnimatedMoneyProps = {
   /** Stored decimal string, e.g. "12450.50". */
@@ -45,6 +48,10 @@ export function AnimatedMoney({
     const delta = target.minus(from);
     const start = performance.now();
     let frame = 0;
+    /* Intermediate frames round to the currency's real minor-unit count so
+       zero-decimal (JPY) or three-decimal (KWD) values never switch format
+       between the animated frames and the final exact value. */
+    const fractionDigits = currencyFractionDigits(currency);
 
     const tick = (now: number) => {
       const progress = Math.min((now - start) / duration, 1);
@@ -54,8 +61,10 @@ export function AnimatedMoney({
         return;
       }
       const eased = new Decimal(String(easeOutExpo(progress)));
-      const next = from.plus(delta.times(eased)).toDecimalPlaces(2);
-      current.current = next.toString();
+      const next = from
+        .plus(delta.times(eased))
+        .toDecimalPlaces(fractionDigits);
+      current.current = next.toFixed(fractionDigits);
       setDisplay(formatMoney(next, currency));
       frame = requestAnimationFrame(tick);
     };

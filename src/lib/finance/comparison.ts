@@ -18,5 +18,6 @@ export function formatPercentageDelta(
   if (change.isZero()) return "0.0%";
 
   const percentage = change.abs().div(prior.abs()).mul(100).toFixed(1);
-  return `${change.isPositive() ? "+" : "-"}${percentage}%`;
+  if (percentage === "0.0") return "0.0%";
+  return `${change.isPositive() ? "+" : "−"}${percentage}%`;
 }

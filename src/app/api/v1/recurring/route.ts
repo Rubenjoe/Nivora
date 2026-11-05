@@ -14,7 +14,8 @@ import {
 } from "@/lib/finance/api-errors";
 import { hasTrustedOrigin } from "@/lib/security/origin";
 import { nextDueOnOrAfter, isDue } from "@/lib/finance/recurrence";
-import { addRecurrenceDue, toISODate } from "@/lib/finance/periods";
+import { addRecurrenceDue } from "@/lib/finance/periods";
+import { getLocalTodayISO } from "@/lib/finance/monthly-report";
 
 const scheduleInput = z.object({
   categoryId: z.string().uuid(),
@@ -56,10 +57,16 @@ export async function GET() {
         categoryIcon: categories.icon,
       })
       .from(recurringSchedules)
-      .innerJoin(categories, eq(recurringSchedules.categoryId, categories.id))
+      .innerJoin(
+        categories,
+        and(
+          eq(recurringSchedules.categoryId, categories.id),
+          eq(categories.profileId, current.profile.id),
+        ),
+      )
       .where(eq(recurringSchedules.profileId, current.profile.id))
       .orderBy(asc(recurringSchedules.nextDueDate));
-    const today = toISODate(new Date());
+    const today = getLocalTodayISO(current.profile.timezone);
     const upcoming = rows.filter((row) => row.schedule.nextDueDate >= today);
     const overdue = rows.filter(
       (row) =>
@@ -116,7 +123,7 @@ export async function POST(request: Request) {
     const nextDueDate = nextDueOnOrAfter(
       data.startDate,
       data.frequency,
-      toISODate(new Date()),
+      getLocalTodayISO(current.profile.timezone),
     );
     if (data.endDate && nextDueDate > data.endDate)
       return NextResponse.json(

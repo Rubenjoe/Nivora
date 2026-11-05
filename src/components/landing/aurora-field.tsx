@@ -60,11 +60,37 @@ function buildStrands(width: number): Strand[] {
     alpha: number;
   }> = [
     // Upper braid — violet into purple
-    { baseY: 0.26, count: thin ? 2 : 3, colors: [PALETTE.violet, PALETTE.purple, PALETTE.violet], amp: 64, width: 1.6, alpha: 0.5 },
+    {
+      baseY: 0.26,
+      count: thin ? 2 : 3,
+      colors: [PALETTE.violet, PALETTE.purple, PALETTE.violet],
+      amp: 64,
+      width: 1.6,
+      alpha: 0.5,
+    },
     // Middle river — gold, the money light
-    { baseY: 0.52, count: thin ? 3 : 4, colors: [PALETTE.gold, PALETTE.champagne, PALETTE.gold, PALETTE.champagne], amp: 84, width: 1.9, alpha: 0.6 },
+    {
+      baseY: 0.52,
+      count: thin ? 3 : 4,
+      colors: [
+        PALETTE.gold,
+        PALETTE.champagne,
+        PALETTE.gold,
+        PALETTE.champagne,
+      ],
+      amp: 84,
+      width: 1.9,
+      alpha: 0.6,
+    },
     // Lower drift — deep purple with a breath of blue
-    { baseY: 0.76, count: thin ? 2 : 3, colors: [PALETTE.violet, PALETTE.blue, PALETTE.purple], amp: 56, width: 1.4, alpha: 0.42 },
+    {
+      baseY: 0.76,
+      count: thin ? 2 : 3,
+      colors: [PALETTE.violet, PALETTE.blue, PALETTE.purple],
+      amp: 56,
+      width: 1.4,
+      alpha: 0.42,
+    },
   ];
 
   const strands: Strand[] = [];
@@ -183,9 +209,15 @@ export function AuroraField({ className }: { className?: string }) {
         const basePx = s.baseY * height + scrollY * s.parallax;
         const gradient = ctx.createLinearGradient(0, 0, width, 0);
         gradient.addColorStop(0, `rgba(${s.color},0)`);
-        gradient.addColorStop(0.18, `rgba(${s.color},${(s.alpha * 0.55).toFixed(3)})`);
+        gradient.addColorStop(
+          0.18,
+          `rgba(${s.color},${(s.alpha * 0.55).toFixed(3)})`,
+        );
         gradient.addColorStop(0.5, `rgba(${s.color},${s.alpha})`);
-        gradient.addColorStop(0.82, `rgba(${s.color},${(s.alpha * 0.55).toFixed(3)})`);
+        gradient.addColorStop(
+          0.82,
+          `rgba(${s.color},${(s.alpha * 0.55).toFixed(3)})`,
+        );
         gradient.addColorStop(1, `rgba(${s.color},0)`);
 
         const points: Array<[number, number]> = [];

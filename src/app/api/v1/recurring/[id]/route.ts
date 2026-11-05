@@ -14,7 +14,8 @@ import {
 } from "@/lib/finance/api-errors";
 import { hasTrustedOrigin } from "@/lib/security/origin";
 import { isDue } from "@/lib/finance/recurrence";
-import { addRecurrenceDue, toISODate } from "@/lib/finance/periods";
+import { addRecurrenceDue } from "@/lib/finance/periods";
+import { getLocalTodayISO } from "@/lib/finance/monthly-report";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -147,7 +148,7 @@ export async function POST(request: Request, context: Context) {
         { error: "Schedule not found." },
         { status: 404 },
       );
-    const today = toISODate(new Date());
+    const today = getLocalTodayISO(current.profile.timezone);
     if (!isDue({ ...schedule, endDate: schedule.endDate }, today)) {
       return NextResponse.json(
         {

@@ -24,8 +24,7 @@
   min-height: 100vh;
   overflow-x: clip;
   background:
-    radial-gradient(120% 90% at 50% -20%, #14141c 0%, transparent 55%),
-    #070709;
+    radial-gradient(120% 90% at 50% -20%, #14141c 0%, transparent 55%), #070709;
   color: var(--lp-text);
   font-family: "Ranade", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -225,7 +224,13 @@
   height: 2px;
   z-index: 40;
   transform-origin: left;
-  background: linear-gradient(90deg, var(--lp-violet-deep), var(--lp-violet), var(--lp-gold), var(--lp-champagne));
+  background: linear-gradient(
+    90deg,
+    var(--lp-violet-deep),
+    var(--lp-violet),
+    var(--lp-gold),
+    var(--lp-champagne)
+  );
   box-shadow: 0 0 12px rgba(169, 149, 255, 0.55);
 }
 
@@ -269,12 +274,24 @@
 }
 
 @keyframes lpGrainDrift {
-  0% { transform: translate(0, 0); }
-  20% { transform: translate(-60px, 40px); }
-  40% { transform: translate(40px, -70px); }
-  60% { transform: translate(-30px, -30px); }
-  80% { transform: translate(70px, 50px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-60px, 40px);
+  }
+  40% {
+    transform: translate(40px, -70px);
+  }
+  60% {
+    transform: translate(-30px, -30px);
+  }
+  80% {
+    transform: translate(70px, 50px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 .lp-vignette {
@@ -394,7 +411,12 @@
   color: #14121c;
   font-size: 12.5px;
   font-weight: 650;
-  background: linear-gradient(120deg, var(--lp-champagne), var(--lp-gold) 55%, #c9a45e);
+  background: linear-gradient(
+    120deg,
+    var(--lp-champagne),
+    var(--lp-gold) 55%,
+    #c9a45e
+  );
   box-shadow:
     0 0 0 1px rgba(214, 183, 121, 0.4),
     0 10px 26px -10px rgba(214, 183, 121, 0.55);
@@ -497,13 +519,12 @@
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background:
-    radial-gradient(
-      220px circle at var(--mx, 50%) var(--my, 0%),
-      rgba(169, 149, 255, 0.55),
-      rgba(214, 183, 121, 0.18) 45%,
-      rgba(255, 255, 255, 0.07) 70%
-    );
+  background: radial-gradient(
+    220px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(169, 149, 255, 0.55),
+    rgba(214, 183, 121, 0.18) 45%,
+    rgba(255, 255, 255, 0.07) 70%
+  );
   opacity: 0.55;
   transition: opacity 0.4s ease;
 }
@@ -686,7 +707,12 @@
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.01em;
-  background: linear-gradient(120deg, var(--lp-violet) 0%, #8f78e8 50%, var(--lp-violet-deep) 100%);
+  background: linear-gradient(
+    120deg,
+    var(--lp-violet) 0%,
+    #8f78e8 50%,
+    var(--lp-violet-deep) 100%
+  );
   box-shadow:
     0 0 0 1px rgba(169, 149, 255, 0.35),
     0 14px 34px -12px rgba(93, 74, 196, 0.75);
@@ -720,7 +746,9 @@
 }
 
 @keyframes lpSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .lp-auth-foot {
@@ -806,7 +834,9 @@
 }
 
 @keyframes lpRingSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .lp-art-glow {
@@ -837,7 +867,11 @@
   border-radius: 20px;
   border: 1px solid rgba(214, 183, 121, 0.24);
   background:
-    radial-gradient(120% 170% at 18% -8%, rgba(214, 183, 121, 0.1), transparent 52%),
+    radial-gradient(
+      120% 170% at 18% -8%,
+      rgba(214, 183, 121, 0.1),
+      transparent 52%
+    ),
     linear-gradient(
       165deg,
       rgba(255, 255, 255, 0.065),
@@ -883,7 +917,9 @@
 }
 
 @keyframes lpArcSpin {
-  to { rotate: 360deg; }
+  to {
+    rotate: 360deg;
+  }
 }
 
 /* Travelling shine, like light moving across engraved ink. */
@@ -905,8 +941,13 @@
 }
 
 @keyframes lpSpecShine {
-  0%, 58% { transform: translateX(-130%); }
-  100% { transform: translateX(130%); }
+  0%,
+  58% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
 }
 
 .lp-spec-head,
@@ -962,7 +1003,12 @@
   font-size: 92px;
   font-weight: 700;
   line-height: 1;
-  background: linear-gradient(150deg, #f4e7c5 18%, var(--lp-gold) 55%, var(--lp-gold-deep));
+  background: linear-gradient(
+    150deg,
+    #f4e7c5 18%,
+    var(--lp-gold) 55%,
+    var(--lp-gold-deep)
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -980,7 +1026,8 @@
 }
 
 .lp-spec-serial {
-  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  font-family:
+    ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
   font-size: 9px;
   letter-spacing: 0.16em;
   color: var(--lp-muted);
@@ -1020,8 +1067,12 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background:
-    radial-gradient(60% 60% at 35% 30%, #f8ecc8, var(--lp-gold) 55%, var(--lp-gold-deep));
+  background: radial-gradient(
+    60% 60% at 35% 30%,
+    #f8ecc8,
+    var(--lp-gold) 55%,
+    var(--lp-gold-deep)
+  );
   box-shadow:
     inset 0 2px 6px rgba(255, 255, 255, 0.55),
     inset 0 -4px 10px rgba(136, 105, 42, 0.6),
@@ -1075,10 +1126,20 @@
 }
 
 @keyframes lpCueDrop {
-  0% { transform: translateY(-14px); opacity: 0; }
-  25% { opacity: 1; }
-  75% { opacity: 1; }
-  100% { transform: translateY(46px); opacity: 0; }
+  0% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(46px);
+    opacity: 0;
+  }
 }
 
 .lp-scroll-cue-text {
@@ -1148,8 +1209,12 @@
 }
 
 @keyframes lpTicker {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 /* ==========================================================================
@@ -1331,7 +1396,11 @@
 .lp-art {
   overflow: hidden;
   background:
-    radial-gradient(80% 60% at 50% 30%, rgba(93, 74, 196, 0.14), transparent 65%),
+    radial-gradient(
+      80% 60% at 50% 30%,
+      rgba(93, 74, 196, 0.14),
+      transparent 65%
+    ),
     linear-gradient(180deg, #070709, #0c0d15 45%, #0a0b11);
 }
 
@@ -1348,9 +1417,28 @@
 .lp-torn-top {
   top: 0;
   clip-path: polygon(
-    0 100%, 0 55%, 3% 75%, 7% 45%, 11% 68%, 15% 40%, 20% 62%, 25% 48%,
-    30% 70%, 35% 42%, 40% 64%, 46% 38%, 52% 60%, 58% 44%, 64% 66%, 70% 40%,
-    76% 62%, 82% 46%, 88% 68%, 94% 42%, 100% 58%, 100% 100%
+    0 100%,
+    0 55%,
+    3% 75%,
+    7% 45%,
+    11% 68%,
+    15% 40%,
+    20% 62%,
+    25% 48%,
+    30% 70%,
+    35% 42%,
+    40% 64%,
+    46% 38%,
+    52% 60%,
+    58% 44%,
+    64% 66%,
+    70% 40%,
+    76% 62%,
+    82% 46%,
+    88% 68%,
+    94% 42%,
+    100% 58%,
+    100% 100%
   );
 }
 
@@ -1358,9 +1446,28 @@
   bottom: 0;
   transform: scaleY(-1);
   clip-path: polygon(
-    0 100%, 0 55%, 3% 75%, 7% 45%, 11% 68%, 15% 40%, 20% 62%, 25% 48%,
-    30% 70%, 35% 42%, 40% 64%, 46% 38%, 52% 60%, 58% 44%, 64% 66%, 70% 40%,
-    76% 62%, 82% 46%, 88% 68%, 94% 42%, 100% 58%, 100% 100%
+    0 100%,
+    0 55%,
+    3% 75%,
+    7% 45%,
+    11% 68%,
+    15% 40%,
+    20% 62%,
+    25% 48%,
+    30% 70%,
+    35% 42%,
+    40% 64%,
+    46% 38%,
+    52% 60%,
+    58% 44%,
+    64% 66%,
+    70% 40%,
+    76% 62%,
+    82% 46%,
+    88% 68%,
+    94% 42%,
+    100% 58%,
+    100% 100%
   );
 }
 
@@ -1430,7 +1537,8 @@
 }
 
 .lp-code-strip {
-  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  font-family:
+    ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
   font-size: 10.5px;
   letter-spacing: 0.08em;
   white-space: nowrap;
@@ -1454,8 +1562,12 @@
 }
 
 @keyframes lpCodeDrift {
-  from { transform: translateX(0); }
-  to { transform: translateX(-220px); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-220px);
+  }
 }
 
 /* Banknotes ------------------------------------------------------------------ */
@@ -1466,11 +1578,26 @@
   will-change: transform;
 }
 
-.lp-note-1 { top: 16%; left: 12%; }
-.lp-note-2 { top: 24%; right: 14%; }
-.lp-note-3 { top: 58%; left: 20%; }
-.lp-note-4 { top: 66%; right: 22%; }
-.lp-note-5 { top: 40%; left: 44%; }
+.lp-note-1 {
+  top: 16%;
+  left: 12%;
+}
+.lp-note-2 {
+  top: 24%;
+  right: 14%;
+}
+.lp-note-3 {
+  top: 58%;
+  left: 20%;
+}
+.lp-note-4 {
+  top: 66%;
+  right: 22%;
+}
+.lp-note-5 {
+  top: 40%;
+  left: 44%;
+}
 
 .lp-bill {
   position: relative;
@@ -1723,7 +1850,12 @@
   color: #14121c;
   font-size: 14px;
   font-weight: 700;
-  background: linear-gradient(120deg, var(--lp-champagne), var(--lp-gold) 55%, #c9a45e);
+  background: linear-gradient(
+    120deg,
+    var(--lp-champagne),
+    var(--lp-gold) 55%,
+    #c9a45e
+  );
   box-shadow:
     0 0 0 1px rgba(214, 183, 121, 0.45),
     0 22px 48px -16px rgba(214, 183, 121, 0.65);
@@ -1880,10 +2012,18 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .lp-note-1 { left: 4%; }
-  .lp-note-2 { right: 4%; }
-  .lp-note-3 { left: 8%; }
-  .lp-note-4 { right: 8%; }
+  .lp-note-1 {
+    left: 4%;
+  }
+  .lp-note-2 {
+    right: 4%;
+  }
+  .lp-note-3 {
+    left: 8%;
+  }
+  .lp-note-4 {
+    right: 8%;
+  }
 
   .lp-bill {
     width: 138px;

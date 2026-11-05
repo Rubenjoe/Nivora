@@ -8,6 +8,7 @@ import {
 } from "@/lib/finance/api-errors";
 import { transactionQuery } from "@/lib/finance/validation";
 import { buildCsv } from "@/lib/finance/csv";
+import { getLocalTodayISO } from "@/lib/finance/monthly-report";
 
 const MAX_EXPORT_ROWS = 5000;
 
@@ -47,7 +48,13 @@ export async function GET(request: Request) {
         createdAt: transactions.createdAt,
       })
       .from(transactions)
-      .innerJoin(categories, eq(transactions.categoryId, categories.id))
+      .innerJoin(
+        categories,
+        and(
+          eq(transactions.categoryId, categories.id),
+          eq(categories.profileId, current.profile.id),
+        ),
+      )
       .where(and(...filters))
       .orderBy(desc(transactions.occurredOn), desc(transactions.createdAt))
       .limit(MAX_EXPORT_ROWS + 1);
@@ -79,8 +86,9 @@ export async function GET(request: Request) {
         row.currency,
       ]),
     );
-    const stamp = toExportStamp(new Date());
-    return new NextResponse(csv, {
+    const stamp = getLocalTodayISO(current.profile.timezone);
+    const bodyWithBom = `\uFEFF${csv}`;
+    return new NextResponse(bodyWithBom, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="nivora-transactions-${stamp}.csv"`,
@@ -90,10 +98,4 @@ export async function GET(request: Request) {
   } catch (cause) {
     return handleFinanceRouteError(cause);
   }
-}
-
-function toExportStamp(date: Date) {
-  const local = new Date(date);
-  local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
-  return local.toISOString().slice(0, 10);
 }

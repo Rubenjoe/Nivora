@@ -7,10 +7,13 @@ import { nextDueOnOrAfter, isDue } from "./recurrence";
 test("CSV cells neutralize formula injection and quote correctly", () => {
   assert.equal(escapeCsvCell("=SUM(A1:A2)"), "'=SUM(A1:A2)");
   assert.equal(escapeCsvCell("+cmd"), "'+cmd");
-  assert.equal(escapeCsvCell("-1"), "'-1");
+  assert.equal(escapeCsvCell("-1"), "-1");
+  assert.equal(escapeCsvCell("-1234.56"), "-1234.56");
+  assert.equal(escapeCsvCell("-cmd"), "'-cmd");
   assert.equal(escapeCsvCell("@import"), "'@import");
   assert.equal(escapeCsvCell('say "hi", ok'), '"say ""hi"", ok"');
   assert.equal(escapeCsvCell("line\nbreak"), "line break");
+  assert.equal(escapeCsvCell("line\rbreak"), "line break");
   assert.equal(escapeCsvCell("plain"), "plain");
 });
 

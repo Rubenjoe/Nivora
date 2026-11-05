@@ -14,6 +14,11 @@
   /* Existing violet + gold, reused for glows and sheens. */
   --glow-violet: rgb(169 149 255 / 16%);
   --glow-gold: rgb(214 183 121 / 14%);
+  --enter: 0ms;
+}
+
+:root:not([data-splash="seen"]) {
+  --enter: 1770ms;
 }
 
 :root[data-theme="light"] {
@@ -31,9 +36,7 @@ html {
 }
 
 body {
-  font-feature-settings:
-    "tnum" 1,
-    "kern" 1;
+  font-feature-settings: "kern" 1;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -88,13 +91,11 @@ body {
 @keyframes nv-page-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
-    filter: blur(3px);
   }
 }
 
 .nv-page {
-  animation: nv-page-in 360ms var(--ease-out) both;
+  animation: nv-page-in 180ms var(--ease-out) var(--enter) backwards;
 }
 
 /* ── Staggered entrances ───────────────────────────────────────────────── */
@@ -121,78 +122,78 @@ body {
 .position-side > div,
 .premium-summary-grid > *,
 .summary-grid > * {
-  animation: nv-rise 520ms var(--ease-expo) both;
+  animation: nv-rise 520ms var(--ease-expo) calc(var(--enter) + 0ms) backwards;
 }
 
 .position-panel {
-  animation: nv-rise 560ms var(--ease-expo) 40ms both;
+  animation: nv-rise 560ms var(--ease-expo) calc(var(--enter) + 40ms) backwards;
 }
 
 .signal-strip > li:nth-child(1) {
-  animation-delay: 120ms;
+  animation-delay: calc(var(--enter) + 120ms);
 }
 .signal-strip > li:nth-child(2) {
-  animation-delay: 180ms;
+  animation-delay: calc(var(--enter) + 180ms);
 }
 .signal-strip > li:nth-child(3) {
-  animation-delay: 240ms;
+  animation-delay: calc(var(--enter) + 240ms);
 }
 
 .position-side > div:nth-child(1) {
-  animation-delay: 160ms;
+  animation-delay: calc(var(--enter) + 160ms);
 }
 .position-side > div:nth-child(2) {
-  animation-delay: 230ms;
+  animation-delay: calc(var(--enter) + 230ms);
 }
 
 .premium-dashboard-grid > *:nth-child(1) {
-  animation-delay: 180ms;
+  animation-delay: calc(var(--enter) + 180ms);
 }
 .premium-dashboard-grid > *:nth-child(2) {
-  animation-delay: 260ms;
+  animation-delay: calc(var(--enter) + 260ms);
 }
 .premium-dashboard-grid > *:nth-child(3) {
-  animation-delay: 340ms;
+  animation-delay: calc(var(--enter) + 340ms);
 }
 
 .dashboard-lower > *:nth-child(1) {
-  animation-delay: 300ms;
+  animation-delay: calc(var(--enter) + 300ms);
 }
 .dashboard-lower > *:nth-child(2) {
-  animation-delay: 380ms;
+  animation-delay: calc(var(--enter) + 380ms);
 }
 
 /* Rows inside lists cascade too. */
 .premium-recent-list > li,
 .premium-category-list > li,
 .premium-widget-list > li {
-  animation: nv-rise 460ms var(--ease-expo) both;
+  animation: nv-rise 460ms var(--ease-expo) calc(var(--enter) + 0ms) backwards;
 }
 
 .premium-recent-list > li:nth-child(1),
 .premium-category-list > li:nth-child(1),
 .premium-widget-list > li:nth-child(1) {
-  animation-delay: 380ms;
+  animation-delay: calc(var(--enter) + 380ms);
 }
 .premium-recent-list > li:nth-child(2),
 .premium-category-list > li:nth-child(2),
 .premium-widget-list > li:nth-child(2) {
-  animation-delay: 430ms;
+  animation-delay: calc(var(--enter) + 430ms);
 }
 .premium-recent-list > li:nth-child(3),
 .premium-category-list > li:nth-child(3),
 .premium-widget-list > li:nth-child(3) {
-  animation-delay: 480ms;
+  animation-delay: calc(var(--enter) + 480ms);
 }
 .premium-recent-list > li:nth-child(4),
 .premium-category-list > li:nth-child(4),
 .premium-widget-list > li:nth-child(4) {
-  animation-delay: 530ms;
+  animation-delay: calc(var(--enter) + 530ms);
 }
 .premium-recent-list > li:nth-child(n + 5),
 .premium-category-list > li:nth-child(n + 5),
 .premium-widget-list > li:nth-child(n + 5) {
-  animation-delay: 580ms;
+  animation-delay: calc(var(--enter) + 580ms);
 }
 
 /* ── Money bar fills from the left ─────────────────────────────────────── */
@@ -204,7 +205,7 @@ body {
 }
 
 .flow-balance .flow-income {
-  animation: nv-fill 900ms var(--ease-expo) 300ms both;
+  animation: nv-fill 900ms var(--ease-expo) calc(var(--enter) + 300ms) backwards;
 }
 
 .position-value,
@@ -391,6 +392,10 @@ body {
   transition: opacity 320ms ease;
 }
 
+.premium-card {
+  isolation: isolate;
+}
+
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .premium-card {
     transition:
@@ -551,6 +556,10 @@ body {
   animation: nv-splash-out 520ms ease 1250ms forwards;
 }
 
+.nv-splash {
+  animation-delay: 1250ms;
+}
+
 :root[data-splash="seen"] .nv-splash {
   display: none;
 }
@@ -644,7 +653,7 @@ body {
     transparent 70%
   );
   transform: translateX(-100%);
-  animation: nv-progress-sheen 2.8s ease-in-out 1.2s infinite;
+  animation: nv-progress-sheen 2.8s ease-in-out 1.2s 2;
 }
 
 @keyframes nv-progress-sheen {
@@ -662,6 +671,50 @@ body {
   transform: scale(1.5);
 }
 
+/* Position and navigation pills track the currently selected item. */
+.dashboard-range-control,
+.premium-nav-desktop {
+  position: relative;
+}
+.dashboard-range-control::before,
+.premium-nav-desktop::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: var(--pill-x, 0px);
+  width: var(--pill-w, 0px);
+  top: 4px;
+  bottom: 4px;
+  border-radius: 999px;
+  background: var(--color-elevated);
+  transition:
+    left 260ms var(--ease-expo),
+    width 260ms var(--ease-expo);
+  pointer-events: none;
+}
+.dashboard-range-option,
+.premium-nav-item {
+  position: relative;
+  z-index: 1;
+}
+.dashboard-range-option.active {
+  background: transparent;
+}
+.dashboard-refresh-error {
+  margin: -12px 0 16px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+.premium-nav-desktop::before {
+  background: color-mix(in srgb, var(--color-elevated) 72%, transparent);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 /* ── Focus: a calm, visible, animated ring ─────────────────────────────── */
 
 :focus-visible {
@@ -673,24 +726,17 @@ body {
 /* ── Reduced motion: switch it all off ─────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
   .nv-splash,
   .nv-route-progress {
     display: none;
-  }
-
-  .nv-page,
-  .premium-dashboard-grid > *,
-  .dashboard-lower > *,
-  .dashboard-rail > *,
-  .signal-strip > li,
-  .position-side > div,
-  .position-panel,
-  .premium-recent-list > li,
-  .premium-category-list > li,
-  .premium-widget-list > li,
-  .nv-skel,
-  .nv-skel-panel,
-  .premium-progress-fill::after {
-    animation: none !important;
   }
 }

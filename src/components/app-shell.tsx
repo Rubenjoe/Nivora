@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowUpRight,
   BarChart3,
@@ -26,6 +26,7 @@ import { CommandPalette } from "@/components/ui/command-palette";
 import { BrandSplash } from "@/components/ui/brand-splash";
 import { PointerSpotlight } from "@/components/ui/pointer-spotlight";
 import { RouteProgress } from "@/components/ui/route-progress";
+import { useSlidingIndicator } from "@/components/ui/use-sliding-indicator";
 import {
   sessionInitials,
   useNavSession,
@@ -82,14 +83,31 @@ function TopBarAuth({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    const outside = (event: PointerEvent) => {
+      if (
+        !menuRef.current?.contains(event.target as Node) &&
+        !triggerRef.current?.contains(event.target as Node)
+      )
+        setOpen(false);
     };
     document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
+    document.addEventListener("pointerdown", outside);
+    return () => {
+      document.removeEventListener("keydown", close);
+      document.removeEventListener("pointerdown", outside);
+    };
   }, [open]);
 
   if (session.status === "loading") {
@@ -117,7 +135,14 @@ function TopBarAuth({
     "Your account";
 
   async function signOut() {
-    await fetch("/api/v1/auth/logout", { method: "POST" });
+    setSignOutError(null);
+    try {
+      const response = await fetch("/api/v1/auth/logout", { method: "POST" });
+      if (!response.ok) throw new Error("Sign out failed. Please try again.");
+    } catch {
+      setSignOutError("Sign out failed. Please try again.");
+      return;
+    }
     setOpen(false);
     onSignedOut();
     router.replace("/sign-in");
@@ -129,8 +154,9 @@ function TopBarAuth({
       <button
         type="button"
         className="premium-profile-trigger"
+        ref={triggerRef}
         aria-expanded={open}
-        aria-haspopup="menu"
+        aria-controls="profile-disclosure"
         onClick={() => setOpen((value) => !value)}
       >
         <span className="premium-avatar" aria-hidden="true">
@@ -139,7 +165,11 @@ function TopBarAuth({
         <span className="premium-profile-label">{displayName}</span>
       </button>
       {open && (
-        <div className="premium-profile-menu" role="menu">
+        <div
+          className="premium-profile-menu"
+          id="profile-disclosure"
+          ref={menuRef}
+        >
           <div className="premium-profile-meta">
             <strong>{displayName}</strong>
             {session.user.email && <span>{session.user.email}</span>}
@@ -149,10 +179,11 @@ function TopBarAuth({
               </span>
             )}
           </div>
-          <Link href="/settings" role="menuitem" onClick={() => setOpen(false)}>
+          {signOutError && <p role="alert">{signOutError}</p>}
+          <Link href="/settings" onClick={() => setOpen(false)}>
             Account settings
           </Link>
-          <button type="button" role="menuitem" onClick={() => void signOut()}>
+          <button type="button" onClick={() => void signOut()}>
             <LogOut size={15} aria-hidden="true" /> Sign out
           </button>
         </div>
@@ -173,9 +204,16 @@ export function AppShell({
   const showPrivateGate =
     session.status === "anonymous" && pathname !== "/" && pathname !== "/help";
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerToggleRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+  const routeFocusPending = useRef(false);
   const [cmdkOpen, setCmdkOpen] = useState(false);
   const [overlayPath, setOverlayPath] = useState(pathname);
   const authenticated = session.status === "authenticated";
+  const desktopNavRef = useSlidingIndicator<HTMLElement>(
+    ".premium-nav-item.active",
+    pathname,
+  );
 
   /* Close overlays when the route changes without a synchronous effect:
      React's documented "adjust state during render" pattern. */
@@ -186,12 +224,58 @@ export function AppShell({
   }
 
   useEffect(() => {
+    if (!routeFocusPending.current) return;
+    routeFocusPending.current = false;
+    document.getElementById("main-content")?.focus();
+  }, [pathname]);
+
+  useEffect(() => {
     if (!drawerOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    drawerRef.current
+      ?.querySelector<HTMLElement>(".premium-sidebar-close")
+      ?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDrawerOpen(false);
+      if (event.key === "Escape") {
+        setDrawerOpen(false);
+        drawerToggleRef.current?.focus();
+      }
+      if (event.key === "Tab" && drawerRef.current) {
+        const drawer = drawerRef.current;
+        const active = document.activeElement;
+        const items = [
+          ...drawer.querySelectorAll<HTMLElement>(
+            "a[href], button:not([disabled])",
+          ),
+        ];
+        const first = items[0];
+        const last = items.at(-1);
+        /* Keep focus inside the drawer: if the focus left it (clicked scrim,
+           programmatic move) steer it back instead of tabbing into the page. */
+        if (
+          active &&
+          drawer.contains(active) === false &&
+          active !== document.body
+        ) {
+          event.preventDefault();
+          (event.shiftKey ? last : first)?.focus();
+          return;
+        }
+        if (event.shiftKey && active === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && active === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
     };
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [drawerOpen]);
 
   /* ⌘K / Ctrl+K opens the command palette (authenticated workspace only). */
@@ -223,7 +307,10 @@ export function AppShell({
             title={label}
             aria-label={label}
             aria-current={active ? "page" : undefined}
-            onClick={() => setDrawerOpen(false)}
+            onClick={() => {
+              if (drawerOpen) routeFocusPending.current = true;
+              setDrawerOpen(false);
+            }}
           >
             <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
             <span>{label}</span>
@@ -234,7 +321,7 @@ export function AppShell({
   );
 
   return (
-    <main className="premium-shell">
+    <div className="premium-shell">
       <BrandSplash />
       <Suspense fallback={null}>
         <RouteProgress />
@@ -248,7 +335,10 @@ export function AppShell({
           type="button"
           className="premium-scrim"
           aria-label="Close navigation"
-          onClick={() => setDrawerOpen(false)}
+          onClick={() => {
+            setDrawerOpen(false);
+            drawerToggleRef.current?.focus();
+          }}
         />
       )}
       <header className="premium-app-header">
@@ -258,6 +348,7 @@ export function AppShell({
               <button
                 type="button"
                 className="premium-mobile-toggle"
+                ref={drawerToggleRef}
                 aria-label={drawerOpen ? "Close navigation" : "Open navigation"}
                 aria-expanded={drawerOpen}
                 aria-controls="mobile-navigation"
@@ -269,7 +360,11 @@ export function AppShell({
             <BrandLogo />
           </div>
           {authenticated && (
-            <nav aria-label="Main navigation" className="premium-nav-desktop">
+            <nav
+              aria-label="Primary navigation"
+              className="premium-nav-desktop"
+              ref={desktopNavRef}
+            >
               {navigationLinks}
             </nav>
           )}
@@ -298,6 +393,7 @@ export function AppShell({
       </header>
 
       <aside
+        ref={drawerRef}
         id="mobile-navigation"
         aria-label="Mobile navigation"
         aria-hidden={!drawerOpen}
@@ -314,12 +410,15 @@ export function AppShell({
               type="button"
               className="premium-sidebar-close"
               aria-label="Close menu"
-              onClick={() => setDrawerOpen(false)}
+              onClick={() => {
+                setDrawerOpen(false);
+                drawerToggleRef.current?.focus();
+              }}
             >
               <X size={18} />
             </button>
           </div>
-          <nav aria-label="Main navigation" className="premium-nav-list">
+          <nav aria-label="Workspace navigation" className="premium-nav-list">
             {navigationLinks}
           </nav>
           {session.status === "anonymous" && (
@@ -343,15 +442,15 @@ export function AppShell({
         </div>
       </aside>
 
-      <section className="premium-main">
-        <div className="premium-content" id="main-content">
+      <main className="premium-main">
+        <div className="premium-content" id="main-content" tabIndex={-1}>
           {showPrivateGate ? <PublicFeatureGate /> : children}
         </div>
-      </section>
+      </main>
 
       {authenticated && (
         <CommandPalette open={cmdkOpen} onClose={() => setCmdkOpen(false)} />
       )}
-    </main>
+    </div>
   );
 }

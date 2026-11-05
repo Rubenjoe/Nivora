@@ -12,6 +12,7 @@ import { hasTrustedOrigin } from "@/lib/security/origin";
 import { expenseTotalForBudget } from "@/lib/finance/budget-spent";
 import type { getDatabase } from "@/lib/db";
 import { monthStartDate } from "@/lib/finance/validation";
+import { currencyFractionDigits } from "@/lib/finance/money-format";
 
 type Database = ReturnType<typeof getDatabase>;
 type BudgetRow = typeof budgets.$inferSelect;
@@ -40,18 +41,19 @@ async function budgetWithProgress(
     row.periodMonth,
     row.categoryId,
   );
-  return budgetProgressFromAmount(row, spent);
+  return budgetProgressFromAmount(row, spent, currency);
 }
 
-function budgetProgressFromAmount(row: BudgetRow, spent: Decimal) {
+function budgetProgressFromAmount(row: BudgetRow, spent: Decimal, currency: string) {
   const amount = new Decimal(row.amount);
   const percent = amount.isZero()
     ? 0
     : Number(spent.div(amount).mul(100).toFixed(1));
+  const digits = currencyFractionDigits(currency);
   return {
     budget: row,
-    spent: spent.toFixed(2),
-    remaining: amount.minus(spent).toFixed(2),
+    spent: spent.toFixed(digits),
+    remaining: amount.minus(spent).toFixed(digits),
     percent,
     overBudget: spent.greaterThan(amount),
     thresholdAlert: percent >= row.warningThresholdPercent,
@@ -118,7 +120,7 @@ export async function GET() {
       const spent = row.categoryId
         ? (period?.categories.get(row.categoryId) ?? new Decimal(0))
         : (period?.total ?? new Decimal(0));
-      return budgetProgressFromAmount(row, spent);
+      return budgetProgressFromAmount(row, spent, current.profile.currency);
     });
     return NextResponse.json({
       currency: current.profile.currency,

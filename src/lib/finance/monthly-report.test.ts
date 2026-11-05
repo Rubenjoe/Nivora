@@ -225,7 +225,7 @@ test("computes totals, operational metrics, comparison, categories, and velocity
   // Income rose from 90k to 100k (+11.1%)
   assert.equal(report.comparison.incomeDelta, "+11.1%");
   // Expenses dropped from 50k to 40k (-20.0%)
-  assert.equal(report.comparison.expenseDelta, "-20.0%");
+  assert.equal(report.comparison.expenseDelta, "−20.0%");
   assert.equal(report.comparison.expenseDifference, "-10000.00");
 
   // Category analysis
@@ -255,7 +255,7 @@ test("computes totals, operational metrics, comparison, categories, and velocity
   assert.ok(landlord);
   assert.equal(landlord.totalSpent, "30000.00");
   assert.equal(landlord.priorTotalSpent, "50000.00");
-  assert.equal(landlord.delta, "-40.0%");
+  assert.equal(landlord.delta, "−40.0%");
 
   // Weekly Totals
   assert.equal(report.weeklyTotals.length, 5);
