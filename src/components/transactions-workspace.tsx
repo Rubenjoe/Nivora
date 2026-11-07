@@ -11,6 +11,7 @@ import {
 import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { SmokeType } from "@/components/ui/smoke-type";
+import { useToast } from "@/components/ui/toast";
 import { formatMoney } from "@/lib/finance/money-format";
 
 type Category = {
@@ -68,6 +69,9 @@ const initialDraft = (): Draft => ({
   description: "",
 });
 
+/** How long a deleted transaction can be restored before it is removed. */
+const UNDO_WINDOW_MS = 5000;
+
 function localDateToday() {
   const date = new Date();
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
@@ -111,6 +115,13 @@ export function TransactionsWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const submittingRef = useRef(false);
+  const { toast, dismiss } = useToast();
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const pendingDeletes = useRef(
+    new Map<string, { timer: number; toastId: string }>(),
+  );
 
   const load = useCallback(
     async (filters = "", page = 1, includeCategories = true) => {
@@ -181,6 +192,11 @@ export function TransactionsWorkspace({
     [activeFilters, load],
   );
 
+  const refreshRef = useRef(refresh);
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
+
   useEffect(() => {
     let active = true;
     load(initialQuery)
@@ -239,16 +255,21 @@ export function TransactionsWorkspace({
     (category) => category.kind === draft.kind,
   );
 
+  const visibleEntries = useMemo(
+    () => entries.filter((item) => !pendingDeleteIds.has(item.transaction.id)),
+    [entries, pendingDeleteIds],
+  );
+
   const filteredEntries = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    if (!needle) return entries;
-    return entries.filter((item) => {
+    if (!needle) return visibleEntries;
+    return visibleEntries.filter((item) => {
       const target = `${item.transaction.merchant ?? ""} ${item.categoryName} ${
         item.transaction.description ?? ""
       }`.toLowerCase();
       return target.includes(needle);
     });
-  }, [entries, search]);
+  }, [visibleEntries, search]);
 
   function changeKind(kind: Draft["kind"]) {
     setDraft((current) => ({
@@ -327,29 +348,82 @@ export function TransactionsWorkspace({
     }
   }
 
-  async function remove(id: string) {
-    if (!window.confirm("Delete this transaction? This cannot be undone."))
-      return;
+  const sendDelete = useCallback(async (id: string, keepalive = false) => {
+    const response = await fetch(`/api/v1/transactions/${id}`, {
+      method: "DELETE",
+      keepalive,
+    });
+    // 404 means it is already gone, which is the outcome we want.
+    if (!response.ok && response.status !== 404) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error ?? "Could not delete this transaction.");
+    }
+  }, []);
+
+  function setPending(id: string, pending: boolean) {
+    setPendingDeleteIds((current) => {
+      const next = new Set(current);
+      if (pending) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  /** Hides the row now, deletes after the undo window unless restored. */
+  function remove(id: string) {
+    if (pendingDeletes.current.has(id)) return;
     setError(null);
     setNotice(null);
-    try {
-      const response = await fetch(`/api/v1/transactions/${id}`, {
-        method: "DELETE",
-      });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.error ?? "Could not delete this transaction.");
-      setNotice("Transaction deleted.");
-      if (editingId === id) cancelEdit();
-      await refresh();
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Could not delete this transaction.",
-      );
-    }
+    if (editingId === id) cancelEdit();
+    setPending(id, true);
+
+    const timer = window.setTimeout(async () => {
+      pendingDeletes.current.delete(id);
+      try {
+        await sendDelete(id);
+        await refreshRef.current();
+      } catch (cause) {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Could not delete this transaction.",
+        );
+      } finally {
+        setPending(id, false);
+      }
+    }, UNDO_WINDOW_MS);
+
+    const toastId = toast({
+      message: "Transaction deleted.",
+      actionLabel: "Undo",
+      duration: UNDO_WINDOW_MS,
+      onAction: () => {
+        window.clearTimeout(timer);
+        pendingDeletes.current.delete(id);
+        setPending(id, false);
+      },
+    });
+    pendingDeletes.current.set(id, { timer, toastId });
   }
+
+  /* Never lose a delete the user already saw confirmed: if they leave the
+     page or close the tab inside the undo window, finish it right away. */
+  useEffect(() => {
+    const pending = pendingDeletes.current;
+    const flush = () => {
+      pending.forEach(({ timer, toastId }, id) => {
+        window.clearTimeout(timer);
+        dismiss(toastId);
+        void sendDelete(id, true).catch(() => undefined);
+      });
+      pending.clear();
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [dismiss, sendDelete]);
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -583,7 +657,7 @@ export function TransactionsWorkspace({
               <p>Your latest recorded transactions.</p>
             </div>
             <span className="record-count">
-              {filteredEntries.length} matching · {entries.length} loaded
+              {filteredEntries.length} matching · {visibleEntries.length} loaded
             </span>
           </div>
           <div className="transaction-filter-row">
@@ -766,7 +840,7 @@ export function TransactionsWorkspace({
                         className="premium-transaction-icon-btn icon-action delete-action"
                         type="button"
                         aria-label={`Delete ${transaction.merchant || item.categoryName}`}
-                        onClick={() => void remove(transaction.id)}
+                        onClick={() => remove(transaction.id)}
                       >
                         <Trash2 size={16} aria-hidden="true" />
                       </button>

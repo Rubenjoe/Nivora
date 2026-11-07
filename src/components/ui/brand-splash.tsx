@@ -15,6 +15,12 @@ export function BrandSplash() {
       document.documentElement.dataset.splash = "seen";
       return;
     }
+    /* Phones skip the brand intro: it is decorative and covers the first
+       screenful for almost two seconds. */
+    if (window.matchMedia("(max-width: 640px)").matches) {
+      document.documentElement.dataset.splash = "seen";
+      return;
+    }
     try {
       sessionStorage.setItem("nivora-splash", "seen");
     } catch {

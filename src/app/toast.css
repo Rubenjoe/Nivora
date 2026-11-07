@@ -1,0 +1,152 @@
+/* Toasts and the account "danger zone". Uses the existing colour tokens. */
+
+.nv-toasts {
+  position: fixed;
+  inset: auto 0 max(20px, env(safe-area-inset-bottom)) 0;
+  z-index: 250;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.nv-toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: min(360px, 100%);
+  max-width: 100%;
+  padding: 12px 12px 12px 16px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-card);
+  color: var(--color-text);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 38%);
+  font-size: 14px;
+  pointer-events: auto;
+  animation: nv-toast-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.nv-toast-message {
+  flex: 1;
+}
+
+.nv-toast-action {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.nv-toast-action:hover {
+  background: var(--glow-violet, rgb(169 149 255 / 16%));
+}
+
+.nv-toast-action:active {
+  transform: scale(0.96);
+}
+
+.nv-toast-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.nv-toast-close:hover {
+  color: var(--color-text);
+}
+
+.nv-toast-timer {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-gold));
+  transform-origin: left;
+  animation: nv-toast-timer var(--toast-ms, 5000ms) linear both;
+}
+
+@keyframes nv-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+}
+
+@keyframes nv-toast-timer {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nv-toast {
+    animation: none;
+  }
+}
+
+/* ── Danger zone ───────────────────────────────────────────────────────── */
+
+.danger-zone {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--color-expense) 40%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-expense) 6%, transparent);
+}
+
+.danger-zone h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.danger-zone p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.danger-zone-confirm {
+  display: grid;
+  gap: 10px;
+}
+
+.danger-zone-confirm input {
+  width: 100%;
+  max-width: 320px;
+}
+
+.danger-zone-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.danger-solid {
+  background: var(--color-expense);
+  color: #1a0b0b;
+  border-color: transparent;
+}
+
+.danger-solid:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

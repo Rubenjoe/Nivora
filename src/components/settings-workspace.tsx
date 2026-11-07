@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { SmokeType } from "@/components/ui/smoke-type";
+import { DeleteAccountSection } from "@/components/delete-account-section";
 import { Download, LoaderCircle, LogOut } from "lucide-react";
 
 type Profile = {
@@ -85,11 +86,13 @@ export function SettingsWorkspace({
     }
   }
 
-  async function exportData() {
+  async function exportData(kind: "csv" | "json" = "csv") {
     setExporting(true);
     setError(null);
     try {
-      const response = await fetch("/api/v1/export/transactions");
+      const response = await fetch(
+        kind === "json" ? "/api/v1/export/all" : "/api/v1/export/transactions",
+      );
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
         throw new Error(result.error ?? "Export failed.");
@@ -98,7 +101,8 @@ export function SettingsWorkspace({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "nivora-transactions.csv";
+      link.download =
+        kind === "json" ? "nivora-data.json" : "nivora-transactions.csv";
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -311,6 +315,15 @@ export function SettingsWorkspace({
           </button>
           <button
             type="button"
+            className="secondary-action"
+            onClick={() => void exportData("json")}
+            disabled={exporting}
+          >
+            <Download size={15} aria-hidden="true" />
+            Download all my data (JSON)
+          </button>
+          <button
+            type="button"
             className="secondary-action danger"
             onClick={() => void signOut()}
           >
@@ -319,6 +332,8 @@ export function SettingsWorkspace({
           </button>
         </div>
       </form>
+
+      <DeleteAccountSection />
     </div>
   );
 }

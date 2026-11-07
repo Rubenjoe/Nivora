@@ -8,6 +8,8 @@ import {
   unauthorized,
 } from "@/lib/finance/api-errors";
 import { hasTrustedOrigin } from "@/lib/security/origin";
+import { createClient } from "@/lib/supabase/server";
+import { deleteAuthUser } from "@/lib/supabase/admin";
 import {
   canChangeProfileCurrency,
   profileHasFinancialRecords,
@@ -86,6 +88,48 @@ export async function PATCH(request: Request) {
       );
     }
     return NextResponse.json({ profile: updated.profile });
+  } catch (cause) {
+    return handleFinanceRouteError(cause);
+  }
+}
+
+const deleteAccountSchema = z.object({ confirm: z.literal("DELETE") });
+
+/**
+ * Permanently deletes the signed-in user's data (profile rows cascade to
+ * categories, transactions, budgets, goals and recurring schedules), then
+ * removes the login itself when a service-role key is configured.
+ */
+export async function DELETE(request: Request) {
+  if (!hasTrustedOrigin(request))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  try {
+    const current = await requireFinanceUser();
+    if (!current) return unauthorized();
+    const parsed = deleteAccountSchema.safeParse(
+      await request.json().catch(() => null),
+    );
+    if (!parsed.success)
+      return NextResponse.json(
+        { error: "Type DELETE to confirm account deletion." },
+        { status: 400 },
+      );
+
+    await current.db
+      .delete(profiles)
+      .where(eq(profiles.id, current.profile.id));
+
+    const authResult = await deleteAuthUser(current.user.id);
+    try {
+      const supabase = await createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // The session cookie is cleared client-side as well; ignore here.
+    }
+    return NextResponse.json({
+      ok: true,
+      authUserRemoved: authResult === "removed",
+    });
   } catch (cause) {
     return handleFinanceRouteError(cause);
   }

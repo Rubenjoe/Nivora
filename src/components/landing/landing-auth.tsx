@@ -153,6 +153,16 @@ function Preloader({ onReveal }: { onReveal: () => void }) {
   useEffect(() => {
     if (reduced) return;
 
+    /* Phones go straight to the form: a full-screen intro delays the task and
+       locks scrolling at exactly the viewport where space is tightest. */
+    if (window.matchMedia("(max-width: 640px)").matches) {
+      const t = window.setTimeout(() => {
+        onReveal();
+        setShow(false);
+      }, 0);
+      return () => window.clearTimeout(t);
+    }
+
     let seen = false;
     try {
       seen = sessionStorage.getItem("nivora-intro") === "seen";

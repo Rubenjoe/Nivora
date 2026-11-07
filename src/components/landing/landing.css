@@ -1999,8 +1999,94 @@
 }
 
 @media (max-width: 640px) {
+  .lp-nav {
+    gap: 10px;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  }
+
+  .lp-nav-brand .nivora-wordmark {
+    width: 92px;
+  }
+
+  .lp-nav-cta {
+    min-height: 44px;
+    padding: 0 14px;
+  }
+
+  /* On sign-up the card already owns the task; the long active CTA does not fit. */
+  .lp-nav-cta-active {
+    display: none;
+  }
+
+  /* Task-first auth layout: the form enters the first viewport. */
   .lp-hero {
-    padding-top: 112px;
+    min-height: auto;
+    padding: calc(78px + env(safe-area-inset-top)) 16px 56px;
+  }
+
+  .lp-hero-grid {
+    gap: 24px;
+  }
+
+  .lp-hero-eyebrow {
+    display: none;
+  }
+
+  .lp-hero-title {
+    margin-bottom: 10px;
+    font-size: clamp(30px, 9vw, 38px);
+    line-height: 1.08;
+  }
+
+  .lp-hero-sub {
+    margin-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .lp-auth-inner {
+    padding: 22px 18px;
+  }
+
+  .lp-auth-head {
+    margin-bottom: 14px;
+  }
+
+  .lp-auth-title {
+    font-size: 20px;
+  }
+
+  .lp-auth-form {
+    gap: 12px;
+  }
+
+  .lp-auth-input {
+    height: 50px;
+    /* ≥16px prevents iOS from zooming the viewport on focus. */
+    font-size: 16px;
+  }
+
+  .lp-auth-submit {
+    min-height: 50px;
+    font-size: 14px;
+  }
+
+  .lp-auth-foot {
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .lp-auth-privacy {
+    font-size: 11px;
+  }
+
+  .lp-footer {
+    padding-bottom: calc(44px + env(safe-area-inset-bottom));
+  }
+
+  /* The JS intro is skipped at this width; hide it before hydration too. */
+  .lp-loader {
+    display: none;
   }
 
   /* Keep the parallax banknotes airy — they sit behind the copy. */

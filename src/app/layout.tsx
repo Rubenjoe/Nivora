@@ -14,6 +14,8 @@ import "./reports.css";
 import "./studio.css";
 import "./nivora-motion.css";
 import "./motion-polish.css";
+import "./toast.css";
+import "./mobile.css";
 
 export const metadata: Metadata = {
   title: "Nivora — Clarity for every financial decision",

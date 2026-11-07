@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { ToastProvider } from "@/components/ui/toast";
 import { getNavSession } from "@/lib/auth/server-session";
 import type { ClientNavSession } from "@/components/use-nav-session";
 
@@ -22,6 +23,8 @@ export default async function AppLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await getNavSession();
   return (
-    <AppShell initialSession={toClientSession(session)}>{children}</AppShell>
+    <ToastProvider>
+      <AppShell initialSession={toClientSession(session)}>{children}</AppShell>
+    </ToastProvider>
   );
 }

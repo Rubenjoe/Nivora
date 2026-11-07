@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MoreHorizontal,
   Repeat,
   Search,
   Settings2,
@@ -34,7 +35,7 @@ import {
 } from "@/components/use-nav-session";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: CreditCard },
   { href: "/budgets", label: "Budgets", icon: Wallet },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
@@ -43,6 +44,22 @@ const navItems = [
   { href: "/recurring", label: "Recurring", icon: Repeat },
   { href: "/settings", label: "Settings", icon: Settings2 },
   { href: "/help", label: "Help & Support", icon: CircleHelp },
+];
+
+/* Phone bottom bar: the four workspaces people open most, plus the full drawer. */
+const mobileTabItems = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/transactions", label: "Activity", icon: CreditCard },
+  { href: "/budgets", label: "Budgets", icon: Wallet },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+];
+
+const drawerOnlyPaths = [
+  "/reports",
+  "/goals",
+  "/recurring",
+  "/settings",
+  "/help",
 ];
 
 function BrandLogo() {
@@ -210,6 +227,11 @@ export function AppShell({
   const [cmdkOpen, setCmdkOpen] = useState(false);
   const [overlayPath, setOverlayPath] = useState(pathname);
   const authenticated = session.status === "authenticated";
+  const moreActive =
+    drawerOpen ||
+    drawerOnlyPaths.some(
+      (href) => pathname === href || pathname.startsWith(`${href}/`),
+    );
   const desktopNavRef = useSlidingIndicator<HTMLElement>(
     ".premium-nav-item.active",
     pathname,
@@ -295,10 +317,7 @@ export function AppShell({
   const navigationLinks = (
     <>
       {navItems.map(({ href, label, icon: Icon }) => {
-        const active =
-          href === "/"
-            ? pathname === "/"
-            : pathname === href || pathname.startsWith(`${href}/`);
+        const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
             key={href}
@@ -447,6 +466,35 @@ export function AppShell({
           {showPrivateGate ? <PublicFeatureGate /> : children}
         </div>
       </main>
+
+      {authenticated && (
+        <nav className="mobile-tabbar" aria-label="Quick navigation">
+          {mobileTabItems.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <Link
+                key={href}
+                className={`mobile-tabbar-item${active ? " active" : ""}`}
+                href={href}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon size={19} strokeWidth={1.9} aria-hidden="true" />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            className={`mobile-tabbar-item${moreActive ? " active" : ""}`}
+            aria-expanded={drawerOpen}
+            aria-controls="mobile-navigation"
+            onClick={() => setDrawerOpen((value) => !value)}
+          >
+            <MoreHorizontal size={19} strokeWidth={1.9} aria-hidden="true" />
+            <span>More</span>
+          </button>
+        </nav>
+      )}
 
       {authenticated && (
         <CommandPalette open={cmdkOpen} onClose={() => setCmdkOpen(false)} />
