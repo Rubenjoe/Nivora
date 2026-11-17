@@ -18,11 +18,13 @@ export function PointerSpotlight() {
         ".premium-card",
       );
       if (!card) return;
+      const clientX = event.clientX;
+      const clientY = event.clientY;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const rect = card.getBoundingClientRect();
-        card.style.setProperty("--mx", `${event.clientX - rect.left}px`);
-        card.style.setProperty("--my", `${event.clientY - rect.top}px`);
+        card.style.setProperty("--mx", `${clientX - rect.left}px`);
+        card.style.setProperty("--my", `${clientY - rect.top}px`);
       });
     };
 

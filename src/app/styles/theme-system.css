@@ -89,7 +89,7 @@ label.premium-label span {
   display: inline;
 }
 
-.premium-content > .premium-header {
+.nv-page > .premium-header {
   gap: 24px;
   margin-bottom: 18px;
 }
@@ -717,7 +717,7 @@ label.premium-label span {
     padding: 16px;
   }
 
-  .premium-content > .premium-header {
+  .nv-page > .premium-header {
     gap: 14px;
   }
 

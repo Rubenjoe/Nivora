@@ -246,17 +246,34 @@ export function CommandPalette({
             onKeyDown={(event) => {
               if (event.key === "ArrowDown") {
                 event.preventDefault();
-                setIndex((i) => Math.min(results.length - 1, i + 1));
+                if (results.length > 0) {
+                  setIndex((i) => Math.min(results.length - 1, i + 1));
+                }
               } else if (event.key === "ArrowUp") {
                 event.preventDefault();
-                setIndex((i) => Math.max(0, i - 1));
+                if (results.length > 0) {
+                  setIndex((i) => Math.max(0, i - 1));
+                }
+              } else if (event.key === "Home") {
+                event.preventDefault();
+                if (results.length > 0) setIndex(0);
+              } else if (event.key === "End") {
+                event.preventDefault();
+                if (results.length > 0) setIndex(results.length - 1);
               } else if (event.key === "Enter" && results[index]) {
                 event.preventDefault();
                 runCommand(results[index]);
               }
             }}
           />
-          <kbd className="nv-cmdk-esc">esc</kbd>
+          <button
+            type="button"
+            className="nv-cmdk-esc"
+            aria-label="Close command palette"
+            onClick={onClose}
+          >
+            esc
+          </button>
         </div>
 
         <div

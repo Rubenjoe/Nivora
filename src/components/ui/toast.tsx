@@ -54,10 +54,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     ({ message, actionLabel, onAction, duration = 5000 }: ToastOptions) => {
       counter.current += 1;
       const id = `toast-${counter.current}`;
-      setItems((current) => [
-        ...current.slice(-3),
-        { id, message, actionLabel, onAction, duration },
-      ]);
+      setItems((current) => {
+        if (current.length >= 4) {
+          for (const evicted of current.slice(0, current.length - 3)) {
+            const staleTimer = timers.current.get(evicted.id);
+            if (staleTimer !== undefined) window.clearTimeout(staleTimer);
+            timers.current.delete(evicted.id);
+          }
+        }
+        return [
+          ...current.slice(-3),
+          { id, message, actionLabel, onAction, duration },
+        ];
+      });
       timers.current.set(
         id,
         window.setTimeout(() => dismiss(id), duration),

@@ -449,6 +449,16 @@ export function TransactionsWorkspace({
     void refresh("");
   }
 
+  const exportQuery = new URLSearchParams();
+  if (from) exportQuery.set("from", from);
+  if (to) exportQuery.set("to", to);
+  if (kindFilter) exportQuery.set("kind", kindFilter);
+  if (categoryFilter) exportQuery.set("categoryId", categoryFilter);
+  if (merchantFilter.trim()) exportQuery.set("merchant", merchantFilter.trim());
+  const exportHref = `/api/v1/export/transactions${
+    exportQuery.size ? `?${exportQuery}` : ""
+  }`;
+
   return (
     <div className="feature-workspace">
       <div className="feature-intro">
@@ -656,9 +666,18 @@ export function TransactionsWorkspace({
               <h2 id="history-title">History</h2>
               <p>Your latest recorded transactions.</p>
             </div>
-            <span className="record-count">
-              {filteredEntries.length} matching · {visibleEntries.length} loaded
-            </span>
+            <div className="history-heading-actions">
+              <span className="record-count">
+                {filteredEntries.length} matching · {visibleEntries.length}{" "}
+                loaded
+              </span>
+              <a
+                className="premium-btn-secondary export-link"
+                href={exportHref}
+              >
+                Export CSV
+              </a>
+            </div>
           </div>
           <div className="transaction-filter-row">
             <label className="search-field">
@@ -751,22 +770,6 @@ export function TransactionsWorkspace({
                 Clear
               </button>
             )}
-            <a
-              className="premium-btn-secondary export-link"
-              href={`/api/v1/export/transactions${(() => {
-                const query = new URLSearchParams();
-                if (from) query.set("from", from);
-                if (to) query.set("to", to);
-                if (kindFilter) query.set("kind", kindFilter);
-                if (categoryFilter) query.set("categoryId", categoryFilter);
-                if (merchantFilter.trim())
-                  query.set("merchant", merchantFilter.trim());
-                const value = query.toString();
-                return value ? `?${value}` : "";
-              })()}`}
-            >
-              Export CSV
-            </a>
           </form>
           {loading ? (
             <p className="history-empty" role="status">

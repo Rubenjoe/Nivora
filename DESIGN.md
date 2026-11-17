@@ -126,7 +126,7 @@ Vitrea's rendered overview informed the horizontal glass navigation, compact met
 
 ## Tokens and typography
 
-The active token sources are `src/app/studio.css` (the final authority layer, imported last), `src/app/auth.css` (the authentication scene), `src/app/vitrea-ui.css`, and `src/components/theme-toggle.tsx`; `theme-system.css` adapts light surfaces, forms, charts, and motion to the studio tokens. `globals.css`, `theme.css`, `dark-theme.css`, `premium-palette.css`, `premium.css`, and `features.css` are historic layers still consumed by individual components. An inline bootstrap script in `src/app/layout.tsx` applies the stored theme before paint.
+The active token sources live in `src/app/styles/`: `studio.css` (the final authority layer, imported last), `vitrea-ui.css`, and `src/components/theme-toggle.tsx`; `theme-system.css` adapts light surfaces, forms, charts, and motion to the studio tokens. `globals.css`, `theme.css`, `dark-theme.css`, `premium-palette.css`, `premium.css`, and `features.css` are historic layers still consumed by individual components. The authentication pages carry their own `landing.css`, and the marketing home its `landing-page.css`, both colocated under `src/components/landing/`. An inline bootstrap script in `src/app/layout.tsx` applies the stored theme before paint.
 
 Ranade is the single typeface across the interface, including headings, forms, navigation, charts, and authentication. The variable file supports the interface's range of weights while keeping the font self-hosted. Body copy uses a 16 px base, and financial values use tabular numerals. Keep content aligned to a consistent max width and use shared card/control radii, quiet borders, and visible focus rings.
 

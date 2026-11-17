@@ -823,7 +823,7 @@ textarea {
   padding: 40px 28px 72px;
 }
 
-.premium-content > .premium-header {
+.nv-page > .premium-header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -2068,6 +2068,26 @@ textarea {
   margin-bottom: 14px;
 }
 
+.history-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .history-heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .history-heading-actions {
+    justify-content: space-between;
+  }
+}
+
 .feature-card-heading h2,
 .transaction-card-heading h2,
 .history-heading h2 {
@@ -2991,7 +3011,7 @@ textarea::placeholder {
 }
 
 .highlight-card {
-  padding: 14px 0;
+  padding: 14px 0 14px 12px;
   border: 0;
   border-bottom: 1px solid var(--color-border-soft);
   border-radius: 0;
@@ -3542,7 +3562,7 @@ main.auth-page button[type="submit"].auth-submit:hover:not(:disabled) {
   }
 }
 
-.premium-content > .premium-header,
+.nv-page > .premium-header,
 .feature-intro {
   animation: studio-enter 320ms cubic-bezier(0.22, 0.8, 0.24, 1) both;
 }
@@ -3780,7 +3800,7 @@ a {
     display: none;
   }
 
-  .premium-content > .premium-header {
+  .nv-page > .premium-header {
     display: grid;
     gap: 16px;
     align-items: start;
@@ -4284,8 +4304,13 @@ a.premium-category-line:focus-visible {
 }
 
 .category-drill-link {
-  display: block;
   border-radius: 7px;
+}
+
+/* The dashboard legend link is a three-column grid; keep block-level rows for
+   the analytics drill-down links that wrap their own layout. */
+a.category-drill-link:not(.premium-category-line) {
+  display: block;
 }
 
 /* -- Daily spending calendar -------------------------------------------- */
@@ -4487,7 +4512,16 @@ a.premium-category-line:focus-visible {
 }
 
 .dashboard-calendar-panel .spending-calendar {
-  max-width: 620px;
+  max-width: none;
+}
+
+/* The calendar panel spans the content column, so let the week fill it with
+   short rows instead of leaving half the card empty beside square cells. */
+@media (min-width: 901px) {
+  .dashboard-calendar-panel .spending-day {
+    aspect-ratio: auto;
+    height: 44px;
+  }
 }
 
 /* -- Advanced analytics ------------------------------------------------- */

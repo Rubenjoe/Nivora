@@ -3,8 +3,10 @@ import { expect, test } from "@playwright/test";
 test("landing page loads with the Nivora brand", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Nivora/i);
+  /* The app shell labels its brand "Nivora home"; the landing nav labels
+     the same lockup "Nivora — back to top". */
   await expect(
-    page.getByRole("link", { name: /nivora.*home/i }).first(),
+    page.getByRole("link", { name: /nivora.*(home|back to top)/i }).first(),
   ).toBeVisible();
 });
 

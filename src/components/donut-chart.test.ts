@@ -29,7 +29,9 @@ test("donut chart renders category arcs and a readable total", () => {
 });
 
 test("donut segment CSS overrides the broad round-cap rule", () => {
-  const cssPath = fileURLToPath(new URL("../app/reports.css", import.meta.url));
+  const cssPath = fileURLToPath(
+    new URL("../app/styles/reports.css", import.meta.url),
+  );
   const css = readFileSync(cssPath, "utf8");
 
   assert.match(

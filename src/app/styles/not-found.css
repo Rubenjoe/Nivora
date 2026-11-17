@@ -1,0 +1,84 @@
+.nf-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 22px clamp(18px, 4vw, 40px) clamp(40px, 6vw, 72px);
+}
+
+.nf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.nf-brand {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text);
+}
+
+.nf-panel {
+  width: min(600px, 100%);
+  margin: auto;
+  padding: clamp(26px, 4vw, 44px);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: var(--color-card);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 4%),
+    0 24px 60px -32px rgb(0 0 0 / 55%);
+  text-align: left;
+}
+
+.nf-code {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(56px, 12vw, 88px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  color: var(--color-gold, #d6b779);
+}
+
+.nf-kicker {
+  margin: 18px 0 8px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.nf-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  color: var(--color-text);
+}
+
+.nf-copy {
+  max-width: 46ch;
+  margin: 12px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.nf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+@media (max-width: 480px) {
+  .nf-actions > * {
+    width: 100%;
+  }
+}

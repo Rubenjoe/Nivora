@@ -28,7 +28,7 @@ export function AnimatedMoney({
   duration = 850,
   className,
 }: AnimatedMoneyProps) {
-  const [display, setDisplay] = useState(() => formatMoney("0", currency));
+  const [display, setDisplay] = useState(() => formatMoney(value, currency));
   const current = useRef("0");
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function AnimatedMoney({
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    if (reduced || target.equals(current.current)) {
+    if (reduced || duration <= 0 || target.equals(current.current)) {
       current.current = value;
       setDisplay(exact);
       return;

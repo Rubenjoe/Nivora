@@ -461,8 +461,9 @@ function LandingHero() {
               show: { opacity: 1, transition: { duration: 0.8 } },
             }}
           >
-            No bank connection required <i aria-hidden="true" /> CSV export
-            <i aria-hidden="true" /> Built for every screen
+            <span>No bank connection required</span> <i aria-hidden="true" />{" "}
+            <span>CSV export</span> <i aria-hidden="true" />{" "}
+            <span>Built for every screen</span>
           </motion.p>
         </motion.div>
 

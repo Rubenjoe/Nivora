@@ -34,6 +34,17 @@
   --nl-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nl-nav-h: 68px;
 
+  /* The marketing canvas is always dark. Global element styles from
+     premium.css/theme-system.css read these tokens, so re-pointing them here
+     stops light mode from rendering the hero headline dark-on-dark. */
+  --color-text: var(--nl-text);
+  --color-text-secondary: var(--nl-muted);
+  --color-text-muted: var(--nl-faint);
+  --color-card: #101014;
+  --color-surface: #101014;
+  --color-control-border: rgba(244, 241, 236, 0.16);
+  --color-border: rgba(244, 241, 236, 0.1);
+
   position: relative;
   min-height: 100vh;
   overflow-x: clip;
@@ -720,12 +731,33 @@
   letter-spacing: 0.01em;
 }
 
+.nl-hero-proof span {
+  white-space: nowrap;
+}
+
+/* The light-theme wordmark asset is black; the marketing canvas stays dark in
+   both themes, so keep the cream lockup here. */
+:root[data-theme="light"] .nl .nivora-wordmark {
+  background-image: url("/brand/nivora-gold-bar-logo.png");
+}
+
 .nl-hero-proof i {
   width: 4px;
   height: 4px;
   transform: rotate(45deg);
   background: var(--nl-gold);
   opacity: 0.65;
+}
+
+/* Once the row wraps, a separator can strand at the end of a line. */
+@media (max-width: 720px) {
+  .nl-hero-proof {
+    gap: 6px 18px;
+  }
+
+  .nl-hero-proof i {
+    display: none;
+  }
 }
 
 /* Hero mockup ------------------------------------------------------------ */
@@ -2820,6 +2852,12 @@
 
   .nl-hero-title {
     font-size: clamp(2.5rem, 11.5vw, 3.4rem);
+  }
+
+  /* The preview bar cannot hold two labels plus the lockup and avatar at this
+     width, and the second label was clipped mid-word. */
+  .nl-mock-nav .nl-mock-tab:nth-child(n + 2) {
+    display: none;
   }
 }
 

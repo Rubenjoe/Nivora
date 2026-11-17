@@ -41,11 +41,13 @@ export function useSlidingIndicator<T extends HTMLElement>(
     container
       .querySelectorAll<HTMLElement>("a, button")
       .forEach((item) => observer?.observe(item));
+    container.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
 
     return () => {
       cancelAnimationFrame(frame);
       observer?.disconnect();
+      container.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
   }, [activeKey, activeSelector]);

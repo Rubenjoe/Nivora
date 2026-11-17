@@ -435,18 +435,18 @@ function AuthCard({
       className="lp-auth-card"
       ref={cardRef}
       onPointerMove={onCardMove}
-      initial={{ y: 36, opacity: 0, filter: "blur(12px)" }}
-      animate={play ? { y: 0, opacity: 1, filter: "blur(0px)" } : undefined}
+      initial={{ y: 36, filter: "blur(12px)" }}
+      animate={play ? { y: 0, filter: "blur(0px)" } : undefined}
       transition={{ type: "spring", stiffness: 70, damping: 16, delay: 0.55 }}
+      style={{ opacity: play ? 1 : 0 }}
     >
       <motion.div
         className="lp-auth-inner"
         initial="hidden"
         animate={play ? "show" : "hidden"}
         variants={{
-          hidden: { opacity: 0 },
+          hidden: {},
           show: {
-            opacity: 1,
             transition: { staggerChildren: 0.07, delayChildren: 0.7 },
           },
         }}
@@ -1191,10 +1191,12 @@ export function LandingAuth({
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 26 });
 
+  /* The stagger lives on the children; the wrapper deliberately animates no
+     opacity of its own. A wrapper-level fade could be interrupted while the
+     preloader hands over and leave the hero (and its sign-in card) invisible. */
   const container = {
-    hidden: { opacity: 0 },
+    hidden: {},
     show: {
-      opacity: 1,
       transition: { staggerChildren: 0.09, delayChildren: 0.1 },
     },
   };

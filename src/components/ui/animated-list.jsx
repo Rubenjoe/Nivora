@@ -226,7 +226,13 @@ export default function AnimatedList({
   const engineRef = useRef(null);
   const keyboardRef = useRef(false);
   const navigatingRef = useRef(false);
-  const [selected, setSelected] = useState(initialSelectedIndex);
+  const [rawSelected, setSelected] = useState(initialSelectedIndex);
+  const selected =
+    items.length === 0
+      ? -1
+      : rawSelected >= items.length
+        ? items.length - 1
+        : rawSelected;
   const baseId = useId();
   const settings = {
     items,

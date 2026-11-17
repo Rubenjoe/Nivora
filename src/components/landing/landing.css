@@ -20,6 +20,18 @@
   --lp-border: rgba(255, 255, 255, 0.08);
   --lp-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
+  /* The auth experience is a fixed dark canvas. Global element styles from
+     premium.css/theme-system.css resolve their colours through these tokens,
+     so re-pointing them here keeps light mode from painting dark-on-dark
+     headings and white form fields over the artwork. */
+  --color-text: var(--lp-text);
+  --color-text-secondary: var(--lp-muted);
+  --color-text-muted: var(--lp-faint);
+  --color-card: #101014;
+  --color-surface: #101014;
+  --color-control-border: rgba(255, 255, 255, 0.12);
+  --color-border: rgba(255, 255, 255, 0.1);
+
   position: relative;
   min-height: 100vh;
   overflow-x: clip;
@@ -340,6 +352,12 @@
 
 .lp-nav-brand .nivora-wordmark {
   width: 108px;
+}
+
+/* The light-theme wordmark asset is black; the auth canvas stays dark in both
+   themes, so keep the cream lockup here. */
+:root[data-theme="light"] .lp .nivora-wordmark {
+  background-image: url("/brand/nivora-gold-bar-logo.png");
 }
 
 .lp-nav-links {

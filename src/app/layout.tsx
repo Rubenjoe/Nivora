@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
-import "./fonts.css";
-import "./globals.css";
-import "./transactions.css";
-import "./theme.css";
-import "./dark-theme.css";
-import "./premium-palette.css";
-import "./features.css";
-import "./premium.css";
-import "./vitrea-ui.css";
-import "./auth.css";
-import "./theme-system.css";
-import "./reports.css";
-import "./studio.css";
-import "./nivora-motion.css";
-import "./motion-polish.css";
-import "./toast.css";
-import "./mobile.css";
+import "./styles/fonts.css";
+import "./styles/globals.css";
+import "./styles/transactions.css";
+import "./styles/theme.css";
+import "./styles/dark-theme.css";
+import "./styles/premium-palette.css";
+import "./styles/features.css";
+import "./styles/premium.css";
+import "./styles/vitrea-ui.css";
+import "./styles/theme-system.css";
+import "./styles/reports.css";
+import "./styles/studio.css";
+import "./styles/nivora-motion.css";
+import "./styles/motion-polish.css";
+import "./styles/toast.css";
+import "./styles/mobile.css";
 
 export const metadata: Metadata = {
   title: "Nivora — Clarity for every financial decision",
